@@ -3,7 +3,7 @@ import {
   getSupabaseCompetitionTableName,
   mapCompetitionToSupabaseRow,
   readLocalCompetitionsForMigration,
-} from "./dataStore.js";
+} from "./dataStore.ts";
 
 async function migrateLocalCompetitionsToSupabase(): Promise<void> {
   const competitions = await readLocalCompetitionsForMigration();

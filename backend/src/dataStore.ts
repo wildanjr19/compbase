@@ -7,7 +7,7 @@ import {
   competitionSchema,
   normalizeCompetition,
   type Competition,
-} from "./competition.js";
+} from "./competition.ts";
 
 interface CompetitionStore {
   listCompetitions(): Promise<Competition[]>;

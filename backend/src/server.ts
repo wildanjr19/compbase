@@ -9,8 +9,8 @@ import {
   getValidationMessages,
   normalizeCompetition,
   type Competition,
-} from "./competition.js";
-import { createCompetitionStore } from "./dataStore.js";
+} from "./competition.ts";
+import { createCompetitionStore } from "./dataStore.ts";
 
 interface CompetitionsResponse {
   ok: true;
