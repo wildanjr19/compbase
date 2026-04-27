@@ -45,6 +45,14 @@ const optionalUrlSchema = z.union([
     .url("Tautan harus menggunakan URL valid dengan protokol http atau https."),
 ]);
 
+const optionalDateSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || isDateString(value),
+    "Format tanggal harus YYYY-MM-DD.",
+  );
+
 export const competitionLinksSchema = z.object({
   registration: optionalUrlSchema.optional().default(""),
   guidebook: optionalUrlSchema.optional().default(""),
@@ -64,37 +72,20 @@ export const competitionSchema = z
     slug: z.string().trim().min(1, "Slug kompetisi wajib diisi."),
     organizer: z.string().trim().min(1, "Nama penyelenggara wajib diisi."),
     category: z.enum(COMPETITION_CATEGORIES),
-    regStart: z
-      .string()
-      .trim()
-      .refine(isDateString, "Format tanggal buka registrasi harus YYYY-MM-DD."),
-    regEnd: z
-      .string()
-      .trim()
-      .refine(
-        isDateString,
-        "Format tanggal tutup registrasi harus YYYY-MM-DD.",
-      ),
-    eventStart: z
-      .string()
-      .trim()
-      .refine(
-        isDateString,
-        "Format tanggal mulai penyisihan harus YYYY-MM-DD.",
-      ),
-    eventEnd: z
-      .string()
-      .trim()
-      .refine(
-        isDateString,
-        "Format tanggal selesai penyisihan harus YYYY-MM-DD.",
-      ),
+    regStart: optionalDateSchema,
+    regEnd: optionalDateSchema,
+    eventStart: optionalDateSchema,
+    eventEnd: optionalDateSchema,
     isPriority: z.boolean(),
     hasGuidebook: z.boolean(),
     links: competitionLinksSchema,
   })
   .superRefine((competition, context) => {
-    if (competition.regStart > competition.regEnd) {
+    if (
+      competition.regStart &&
+      competition.regEnd &&
+      competition.regStart > competition.regEnd
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message:
@@ -103,7 +94,11 @@ export const competitionSchema = z
       });
     }
 
-    if (competition.eventStart > competition.eventEnd) {
+    if (
+      competition.eventStart &&
+      competition.eventEnd &&
+      competition.eventStart > competition.eventEnd
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message:
@@ -112,7 +107,11 @@ export const competitionSchema = z
       });
     }
 
-    if (competition.regEnd > competition.eventEnd) {
+    if (
+      competition.regEnd &&
+      competition.eventEnd &&
+      competition.regEnd > competition.eventEnd
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Deadline pendaftaran tidak boleh melewati akhir penyisihan.",

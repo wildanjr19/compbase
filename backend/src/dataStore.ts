@@ -36,6 +36,7 @@ interface SupabaseCompetitionRow {
 }
 
 const backendRootPath = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceRootPath = resolve(backendRootPath, "..");
 const defaultLocalDataPath = resolve(
   backendRootPath,
   ".local",
@@ -63,6 +64,14 @@ function getLocalCompetitionsFilePath(): string {
 
   if (!configuredPath) {
     return defaultLocalDataPath;
+  }
+
+  if (configuredPath.startsWith("backend/")) {
+    return resolve(workspaceRootPath, configuredPath);
+  }
+
+  if (configuredPath.startsWith("backend\\")) {
+    return resolve(workspaceRootPath, configuredPath);
   }
 
   return resolve(process.cwd(), configuredPath);
