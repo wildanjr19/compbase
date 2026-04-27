@@ -19,10 +19,6 @@ export interface AdminLoginState {
   errorMessage: string | null;
 }
 
-export const INITIAL_ADMIN_LOGIN_STATE: AdminLoginState = {
-  errorMessage: null,
-};
-
 export interface AdminCompetitionMutationState {
   ok: boolean;
   competition: Competition | null;

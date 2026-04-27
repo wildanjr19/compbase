@@ -25,7 +25,11 @@ interface ActionLink {
 type CopyState = "idle" | "success" | "error";
 
 function getWebsiteLink(competition: Competition): string | undefined {
-  return competition.links.website ?? competition.links.linktree ?? competition.links.registration;
+  return (
+    competition.links.website ??
+    competition.links.linktree ??
+    competition.links.registration
+  );
 }
 
 function createActionLinks(competition: Competition): ActionLink[] {
@@ -144,26 +148,48 @@ export function CompetitionDetailModal({
             onClick={onClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-zinc-300 hover:border-white/18 hover:text-zinc-50"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 4L12 12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <path
+                d="M12 4L4 12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
 
         <div className="grid gap-5 px-5 py-5 md:px-6 md:py-6">
-          <p className="text-sm leading-relaxed text-zinc-300">{competition.description}</p>
-
           <dl className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-[1rem] border border-white/8 bg-black/12 p-4 text-sm text-zinc-300">
-              <dt className="text-xs uppercase tracking-[0.22em] text-zinc-500">Deadline</dt>
-              <dd className="mt-2 font-medium text-zinc-100">{formatDate(competition.regEnd)}</dd>
+              <dt className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                Deadline
+              </dt>
+              <dd className="mt-2 font-medium text-zinc-100">
+                {formatDate(competition.regEnd)}
+              </dd>
               <dd className="mt-1 text-xs text-zinc-400">
-                {daysLeft >= 0 ? `Masih ada ${daysLeft} hari` : "Pendaftaran sudah tutup"}
+                {daysLeft >= 0
+                  ? `Masih ada ${daysLeft} hari`
+                  : "Pendaftaran sudah tutup"}
               </dd>
             </div>
             <div className="rounded-[1rem] border border-white/8 bg-black/12 p-4 text-sm text-zinc-300">
-              <dt className="text-xs uppercase tracking-[0.22em] text-zinc-500">Penyisihan</dt>
+              <dt className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                Penyisihan
+              </dt>
               <dd className="mt-2 font-medium leading-relaxed text-zinc-100">
                 {formatDateRange(competition.eventStart, competition.eventEnd)}
               </dd>
@@ -193,7 +219,10 @@ export function CompetitionDetailModal({
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-5 flex justify-center px-5" aria-live="polite">
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-5 flex justify-center px-5"
+          aria-live="polite"
+        >
           {copyState === "success" ? (
             <div className="rounded-full border border-emerald-300/15 bg-emerald-300/10 px-4 py-2 text-xs font-medium text-emerald-100 shadow-[0_18px_50px_-30px_oklch(0.7_0.06_160)] backdrop-blur-md">
               Informasi lomba berhasil disalin

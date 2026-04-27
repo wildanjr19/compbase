@@ -120,7 +120,11 @@ export function CompetitionDetailModal({
               <dt className="text-xs uppercase tracking-[0.22em] text-zinc-500">Deadline pendaftaran</dt>
               <dd className="mt-1.5 font-medium text-zinc-100">{formatDate(competition.regEnd)}</dd>
               <dd className="mt-1 text-xs text-zinc-400">
-                {daysLeft >= 0 ? `Masih ada ${daysLeft} hari` : "Pendaftaran sudah tutup"}
+                {daysLeft === null
+                  ? "Tanggal belum ditentukan"
+                  : daysLeft >= 0
+                    ? `Masih ada ${daysLeft} hari`
+                    : "Pendaftaran sudah tutup"}
               </dd>
             </div>
             <div className="rounded-[1rem] bg-black/12 p-3.5 text-sm text-zinc-300 ring-1 ring-white/6">
@@ -130,10 +134,6 @@ export function CompetitionDetailModal({
               </dd>
             </div>
           </dl>
-
-          <div className="rounded-[1rem] bg-white/[0.022] px-4 py-3.5 text-sm leading-relaxed text-zinc-300 ring-1 ring-white/6">
-            {competition.description}
-          </div>
 
           <div className="flex flex-wrap gap-2">
             <ShareButton shareText={shareText} />

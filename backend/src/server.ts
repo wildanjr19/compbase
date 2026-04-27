@@ -1,4 +1,8 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { z } from "zod";
 
 const COMPETITION_CATEGORIES = [
@@ -34,7 +38,7 @@ interface Competition {
   eventEnd: string;
   isPriority: boolean;
   hasGuidebook: boolean;
-  description: string;
+
   links: CompetitionLinks;
 }
 
@@ -100,25 +104,35 @@ const competitionSchema = z
     regEnd: z
       .string()
       .trim()
-      .refine(isDateString, "Format tanggal tutup registrasi harus YYYY-MM-DD."),
+      .refine(
+        isDateString,
+        "Format tanggal tutup registrasi harus YYYY-MM-DD.",
+      ),
     eventStart: z
       .string()
       .trim()
-      .refine(isDateString, "Format tanggal mulai pelaksanaan harus YYYY-MM-DD."),
+      .refine(
+        isDateString,
+        "Format tanggal mulai pelaksanaan harus YYYY-MM-DD.",
+      ),
     eventEnd: z
       .string()
       .trim()
-      .refine(isDateString, "Format tanggal selesai pelaksanaan harus YYYY-MM-DD."),
+      .refine(
+        isDateString,
+        "Format tanggal selesai pelaksanaan harus YYYY-MM-DD.",
+      ),
     isPriority: z.boolean(),
     hasGuidebook: z.boolean(),
-    description: z.string().trim().min(1, "Deskripsi kompetisi wajib diisi."),
+
     links: competitionLinksSchema,
   })
   .superRefine((competition, context) => {
     if (competition.regStart > competition.regEnd) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Tanggal buka registrasi tidak boleh melewati tanggal tutup registrasi.",
+        message:
+          "Tanggal buka registrasi tidak boleh melewati tanggal tutup registrasi.",
         path: ["regStart"],
       });
     }
@@ -126,7 +140,8 @@ const competitionSchema = z
     if (competition.eventStart > competition.eventEnd) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Tanggal mulai pelaksanaan tidak boleh melewati tanggal selesai pelaksanaan.",
+        message:
+          "Tanggal mulai pelaksanaan tidak boleh melewati tanggal selesai pelaksanaan.",
         path: ["eventStart"],
       });
     }
@@ -153,8 +168,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-05-17",
     isPriority: true,
     hasGuidebook: true,
-    description:
-      "Kompetisi analitik terbuka untuk mahasiswa dengan studi kasus ekonomi regional berbasis data mikro.",
+
     links: {
       registration: "https://example.com/datathon-nusantara-2026",
       guidebook: "https://example.com/datathon-nusantara-2026/guidebook",
@@ -173,8 +187,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-06-30",
     isPriority: true,
     hasGuidebook: true,
-    description:
-      "Membangun model prediktif untuk peningkatan kualitas layanan publik dan transparansi pengambilan keputusan.",
+
     links: {
       registration: "https://example.com/satria-data-challenge",
       guidebook: "https://example.com/satria-data-challenge/guidebook",
@@ -193,8 +206,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-05-11",
     isPriority: false,
     hasGuidebook: true,
-    description:
-      "Ajang tahunan untuk menguji kemampuan inferensi statistik, visualisasi, dan komunikasi hasil analisis.",
+
     links: {
       registration: "https://example.com/olimpiade-statistika-terapan",
       guidebook: "https://example.com/olimpiade-statistika-terapan/guidebook",
@@ -213,8 +225,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-06-21",
     isPriority: true,
     hasGuidebook: false,
-    description:
-      "Hackfest lintas disiplin untuk menyusun prototipe berbasis AI dan statistik pada isu kebijakan publik.",
+
     links: {
       registration: "https://example.com/ai-public-policy-hackfest",
       instagram: "https://instagram.com/govtech.collective",
@@ -233,8 +244,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-05-24",
     isPriority: false,
     hasGuidebook: true,
-    description:
-      "Kompetisi narasi data untuk mengubah dataset pemerintah menjadi insight visual yang mudah dipahami publik.",
+
     links: {
       registration: "https://example.com/data-storytelling-sprint",
       guidebook: "https://example.com/data-storytelling-sprint/guidebook",
@@ -253,8 +263,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-06-20",
     isPriority: false,
     hasGuidebook: true,
-    description:
-      "Liga data mining mahasiswa dengan fokus pada klasifikasi, clustering, dan evaluasi model pada data nyata.",
+
     links: {
       registration: "https://example.com/national-data-mining-league",
       guidebook: "https://example.com/national-data-mining-league/guidebook",
@@ -273,8 +282,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-07-03",
     isPriority: false,
     hasGuidebook: false,
-    description:
-      "Kompetisi esai untuk gagasan kebijakan berbasis data yang aplikatif bagi institusi publik dan kampus.",
+
     links: {
       registration: "https://example.com/essay-kebijakan-data-nasional",
       instagram: "https://instagram.com/forummdata.id",
@@ -292,8 +300,7 @@ const COMPETITIONS: Competition[] = [
     eventEnd: "2026-06-27",
     isPriority: true,
     hasGuidebook: true,
-    description:
-      "Membuat dashboard interaktif yang merangkum insight bisnis, operasional, dan perilaku pelanggan.",
+
     links: {
       registration: "https://example.com/dashboard-analytics-challenge",
       guidebook: "https://example.com/dashboard-analytics-challenge/guidebook",
@@ -365,10 +372,15 @@ function sendJson(
 function setCorsHeaders(res: ServerResponse): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,x-compbase-admin-token");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type,x-compbase-admin-token",
+  );
 }
 
-function normalizeCompetition(input: z.infer<typeof competitionSchema>): Competition {
+function normalizeCompetition(
+  input: z.infer<typeof competitionSchema>,
+): Competition {
   const links: CompetitionLinks = {
     registration: input.links.registration.trim(),
     guidebook: input.links.guidebook.trim(),
@@ -383,7 +395,7 @@ function normalizeCompetition(input: z.infer<typeof competitionSchema>): Competi
     name: input.name.trim(),
     slug: input.slug.trim(),
     organizer: input.organizer.trim(),
-    description: input.description.trim(),
+
     links,
     hasGuidebook: Boolean(links.guidebook),
   };
@@ -428,7 +440,9 @@ function getValidationMessages(error: z.ZodError): string[] {
 }
 
 function findCompetitionIndex(competitionId: string): number {
-  return COMPETITIONS.findIndex((competition) => competition.id === competitionId);
+  return COMPETITIONS.findIndex(
+    (competition) => competition.id === competitionId,
+  );
 }
 
 function getCompetitionIdFromPath(pathname: string): string | null {
@@ -445,7 +459,10 @@ function getCompetitionIdFromPath(pathname: string): string | null {
   }
 }
 
-async function handleCreateCompetition(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleCreateCompetition(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   try {
     const rawPayload = await readRequestBody(req);
     const parsedPayload = competitionSchema.safeParse(rawPayload);
@@ -460,7 +477,9 @@ async function handleCreateCompetition(req: IncomingMessage, res: ServerResponse
     }
 
     const normalizedCompetition = normalizeCompetition(parsedPayload.data);
-    const existingCompetitionIndex = findCompetitionIndex(normalizedCompetition.id);
+    const existingCompetitionIndex = findCompetitionIndex(
+      normalizedCompetition.id,
+    );
 
     if (existingCompetitionIndex !== -1) {
       sendJson(res, 409, {
@@ -473,7 +492,10 @@ async function handleCreateCompetition(req: IncomingMessage, res: ServerResponse
     COMPETITIONS.unshift(normalizedCompetition);
     sendJson(res, 201, { ok: true, data: normalizedCompetition });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Gagal memproses data kompetisi.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal memproses data kompetisi.";
 
     sendJson(res, 400, {
       ok: false,
@@ -523,7 +545,10 @@ async function handleUpdateCompetition(
     COMPETITIONS[existingCompetitionIndex] = normalizedCompetition;
     sendJson(res, 200, { ok: true, data: normalizedCompetition });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Gagal memperbarui data kompetisi.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal memperbarui data kompetisi.";
 
     sendJson(res, 400, {
       ok: false,
@@ -532,7 +557,10 @@ async function handleUpdateCompetition(
   }
 }
 
-function handleDeleteCompetition(res: ServerResponse, competitionId: string): void {
+function handleDeleteCompetition(
+  res: ServerResponse,
+  competitionId: string,
+): void {
   const existingCompetitionIndex = findCompetitionIndex(competitionId);
 
   if (existingCompetitionIndex === -1) {
@@ -550,7 +578,10 @@ function handleDeleteCompetition(res: ServerResponse, competitionId: string): vo
   });
 }
 
-async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   setCorsHeaders(res);
 
   if (req.method === "OPTIONS") {
@@ -613,7 +644,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 
 const server = createServer((req, res) => {
   void handleRequest(req, res).catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : "Terjadi kesalahan internal backend.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan internal backend.";
 
     sendJson(res, 500, {
       ok: false,

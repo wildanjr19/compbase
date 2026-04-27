@@ -7,7 +7,6 @@ import type {
   CompetitionTab,
 } from "@/lib/types";
 
-const CLOSING_SOON_WINDOW_DAYS = 7;
 const DEFAULT_FILTERS: CompetitionFilters = {
   query: "",
   category: "all",
@@ -34,7 +33,7 @@ function normalizeText(text: string): string {
 }
 
 function isCompetitionTab(value: string): value is CompetitionTab {
-  return ["all", "open", "closing-soon", "has-guidebook"].includes(value);
+  return ["all", "coming-soon", "open", "has-guidebook"].includes(value);
 }
 
 function isCompetitionSort(value: string): value is CompetitionSort {
@@ -45,8 +44,14 @@ function toDate(dateInput: string): Date {
   return new Date(`${dateInput}T00:00:00.000Z`);
 }
 
+function hasDate(dateInput: string): boolean {
+  return Boolean(dateInput?.trim());
+}
+
 function toToday(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
 }
 
 export function parseCompetitionFilters(
@@ -59,16 +64,24 @@ export function parseCompetitionFilters(
 
   const normalizedTab = normalizeText(tabInput);
   const normalizedSort = normalizeText(sortInput);
+  const resolvedTab =
+    normalizedTab === "closing-soon" ? "coming-soon" : normalizedTab;
 
   return {
     query,
     category: category ? category : DEFAULT_FILTERS.category,
-    tab: isCompetitionTab(normalizedTab) ? normalizedTab : DEFAULT_FILTERS.tab,
-    sort: isCompetitionSort(normalizedSort) ? normalizedSort : DEFAULT_FILTERS.sort,
+    tab: isCompetitionTab(resolvedTab) ? resolvedTab : DEFAULT_FILTERS.tab,
+    sort: isCompetitionSort(normalizedSort)
+      ? normalizedSort
+      : DEFAULT_FILTERS.sort,
   };
 }
 
-export function getDaysUntilDeadline(regEnd: string, now: Date): number {
+export function getDaysUntilDeadline(regEnd: string, now: Date): number | null {
+  if (!hasDate(regEnd)) {
+    return null;
+  }
+
   const deadline = toDate(regEnd);
   const today = toToday(now);
   const difference = deadline.getTime() - today.getTime();
@@ -80,20 +93,35 @@ export function getCompetitionStatus(
   competition: Competition,
   now: Date,
 ): CompetitionStatus {
+  if (!hasDate(competition.regStart) || !hasDate(competition.regEnd)) {
+    return "coming-soon";
+  }
+
+  const registrationStartDate = toDate(competition.regStart);
+  const today = toToday(now);
+
+  if (registrationStartDate.getTime() > today.getTime()) {
+    return "coming-soon";
+  }
+
   const daysLeft = getDaysUntilDeadline(competition.regEnd, now);
+
+  if (daysLeft === null) {
+    return "coming-soon";
+  }
 
   if (daysLeft < 0) {
     return "closed";
-  }
-
-  if (daysLeft <= CLOSING_SOON_WINDOW_DAYS) {
-    return "closing-soon";
   }
 
   return "open";
 }
 
 export function formatDate(dateInput: string): string {
+  if (!hasDate(dateInput)) {
+    return "Belum ditentukan";
+  }
+
   const formatter = new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",
@@ -105,6 +133,14 @@ export function formatDate(dateInput: string): string {
 }
 
 export function formatDateRange(startDate: string, endDate: string): string {
+  if (!hasDate(startDate) && !hasDate(endDate)) {
+    return "Belum ditentukan";
+  }
+
+  if (!hasDate(startDate) || !hasDate(endDate)) {
+    return "Menunggu jadwal lengkap";
+  }
+
   return `${formatDate(startDate)} - ${formatDate(endDate)}`;
 }
 
@@ -121,7 +157,6 @@ export function filterCompetitions(
         competition.name,
         competition.organizer,
         competition.category,
-        competition.description,
       ]
         .map((text) => normalizeText(text))
         .some((text) => text.includes(normalizedQuery));
@@ -131,17 +166,20 @@ export function filterCompetitions(
       }
     }
 
-    if (filters.category !== "all" && competition.category !== filters.category) {
+    if (
+      filters.category !== "all" &&
+      competition.category !== filters.category
+    ) {
       return false;
     }
 
     const status = getCompetitionStatus(competition, now);
 
-    if (filters.tab === "open" && status !== "open") {
+    if (filters.tab === "coming-soon" && status !== "coming-soon") {
       return false;
     }
 
-    if (filters.tab === "closing-soon" && status !== "closing-soon") {
+    if (filters.tab === "open" && status !== "open") {
       return false;
     }
 
@@ -167,7 +205,22 @@ export function sortCompetitions(
       return left.organizer.localeCompare(right.organizer, "id-ID");
     }
 
-    return getDaysUntilDeadline(left.regEnd, now) - getDaysUntilDeadline(right.regEnd, now);
+    const leftDays = getDaysUntilDeadline(left.regEnd, now);
+    const rightDays = getDaysUntilDeadline(right.regEnd, now);
+
+    if (leftDays === null && rightDays === null) {
+      return left.name.localeCompare(right.name, "id-ID");
+    }
+
+    if (leftDays === null) {
+      return 1;
+    }
+
+    if (rightDays === null) {
+      return -1;
+    }
+
+    return leftDays - rightDays;
   });
 }
 
@@ -179,12 +232,12 @@ export function getCompetitionStats(
     (stats, competition) => {
       const status = getCompetitionStatus(competition, now);
 
-      if (status === "open") {
-        stats.open += 1;
+      if (status === "coming-soon") {
+        stats.comingSoon += 1;
       }
 
-      if (status === "closing-soon") {
-        stats.closingSoon += 1;
+      if (status === "open") {
+        stats.open += 1;
       }
 
       if (competition.isPriority) {
@@ -196,8 +249,8 @@ export function getCompetitionStats(
     },
     {
       total: 0,
+      comingSoon: 0,
       open: 0,
-      closingSoon: 0,
       priority: 0,
     },
   );
@@ -221,19 +274,40 @@ export function getSpotlightCompetitions(
     const rightStatus = getCompetitionStatus(right, now);
 
     if (leftStatus !== rightStatus) {
-      return leftStatus === "closing-soon" ? -1 : 1;
+      const statusOrder: Record<CompetitionStatus, number> = {
+        open: 0,
+        "coming-soon": 1,
+        closed: 2,
+      };
+
+      return statusOrder[leftStatus] - statusOrder[rightStatus];
     }
 
-    return getDaysUntilDeadline(left.regEnd, now) - getDaysUntilDeadline(right.regEnd, now);
+    const leftDays = getDaysUntilDeadline(left.regEnd, now);
+    const rightDays = getDaysUntilDeadline(right.regEnd, now);
+
+    if (leftDays === null && rightDays === null) {
+      return left.name.localeCompare(right.name, "id-ID");
+    }
+
+    if (leftDays === null) {
+      return 1;
+    }
+
+    if (rightDays === null) {
+      return -1;
+    }
+
+    return leftDays - rightDays;
   });
 
   return sorted.slice(0, limit);
 }
 
 export function getCategoryOptions(competitions: Competition[]): string[] {
-  return Array.from(new Set(competitions.map((competition) => competition.category))).sort(
-    (left, right) => left.localeCompare(right, "id-ID"),
-  );
+  return Array.from(
+    new Set(competitions.map((competition) => competition.category)),
+  ).sort((left, right) => left.localeCompare(right, "id-ID"));
 }
 
 export function createCompetitionHref(

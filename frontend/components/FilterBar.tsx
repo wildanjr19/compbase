@@ -34,8 +34,12 @@ function toCompetitionSort(value: FormDataEntryValue | null): CompetitionSort {
 }
 
 function toCompetitionTab(value: FormDataEntryValue | null): CompetitionTab {
-  if (value === "open" || value === "closing-soon" || value === "has-guidebook") {
+  if (value === "open" || value === "coming-soon" || value === "has-guidebook") {
     return value;
+  }
+
+  if (value === "closing-soon") {
+    return "coming-soon";
   }
 
   return "all";

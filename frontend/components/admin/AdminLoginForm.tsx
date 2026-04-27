@@ -2,10 +2,13 @@
 
 import { useActionState } from "react";
 import {
-  INITIAL_ADMIN_LOGIN_STATE,
   loginAdminAction,
   type AdminLoginState,
 } from "@/app/admin/actions";
+
+const INITIAL_ADMIN_LOGIN_STATE: AdminLoginState = {
+  errorMessage: null,
+};
 
 export function AdminLoginForm() {
   const [state, formAction, isPending] = useActionState<AdminLoginState, FormData>(

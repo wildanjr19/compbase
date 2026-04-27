@@ -17,7 +17,6 @@ export interface Competition {
   eventEnd: string;
   isPriority: boolean;
   hasGuidebook: boolean;
-  description: string;
   links: CompetitionLinks;
 }
 

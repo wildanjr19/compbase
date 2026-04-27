@@ -62,7 +62,7 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
           <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Deadline pendaftaran</p>
           <p className="mt-1 font-medium text-zinc-100">{formatDate(competition.regEnd)}</p>
           <p className="mt-1 text-[11px] text-zinc-400">
-            {daysLeft >= 0 ? `${daysLeft} hari lagi` : "Sudah lewat"}
+            {daysLeft === null ? "Belum ditentukan" : daysLeft >= 0 ? `${daysLeft} hari lagi` : "Sudah lewat"}
           </p>
         </div>
 

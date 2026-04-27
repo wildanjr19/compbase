@@ -18,11 +18,10 @@ export interface Competition {
   eventEnd: string;
   isPriority: boolean;
   hasGuidebook: boolean;
-  description: string;
   links: CompetitionLinks;
 }
 
-export type CompetitionStatus = "open" | "closing-soon" | "closed";
+export type CompetitionStatus = "coming-soon" | "open" | "closed";
 
 export type CompetitionCategory =
   | "Data Science"
@@ -34,11 +33,7 @@ export type CompetitionCategory =
   | "Infografis"
   | "Dashboard";
 
-export type CompetitionTab =
-  | "all"
-  | "open"
-  | "closing-soon"
-  | "has-guidebook";
+export type CompetitionTab = "all" | "coming-soon" | "open" | "has-guidebook";
 
 export type CompetitionSort = "deadline" | "name" | "organizer";
 
@@ -51,7 +46,7 @@ export interface CompetitionFilters {
 
 export interface CompetitionStats {
   total: number;
+  comingSoon: number;
   open: number;
-  closingSoon: number;
   priority: number;
 }
