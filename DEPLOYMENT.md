@@ -1,6 +1,6 @@
-# Deployment CompBase ke VPS Pribadi dengan GitHub CI/CD
+# Deployment CompBase ke VPS + Supabase Cloud (Step-by-Step)
 
-Dokumen ini menjelaskan langkah deploy CompBase ke VPS pribadi menggunakan GitHub Actions sebagai CI/CD. Panduan dibuat untuk kondisi repo saat ini: monorepo `pnpm` dengan frontend Next.js di `frontend/` dan backend Node.js di `backend/`.
+Dokumen ini menjelaskan langkah deploy CompBase ke VPS pribadi menggunakan GitHub Actions sebagai CI/CD, dengan database di Supabase Cloud (supabase.com). Panduan dibuat untuk kondisi repo saat ini: monorepo `pnpm` dengan frontend Next.js di `frontend/` dan backend Node.js di `backend/`.
 
 Tutorial ini memakai pendekatan berikut:
 
@@ -10,7 +10,101 @@ Tutorial ini memakai pendekatan berikut:
 - Frontend dan backend dijalankan sebagai service `systemd`.
 - Nginx dipakai sebagai reverse proxy.
 
-## 1. Gambaran Arsitektur Deploy
+Hasil akhir yang dituju:
+
+- frontend live di domain publik (contoh: `https://compbase.domainkamu.com`)
+- backend live di domain/subdomain publik (contoh: `https://api.compbase.domainkamu.com`)
+- backend membaca/menulis data kompetisi ke Supabase Cloud
+- setiap push ke branch deploy memicu deploy otomatis ke VPS
+
+## 0. Jalur Eksekusi Paling Aman (Ikuti Urutan Ini)
+
+Supaya tidak bolak-balik troubleshooting, jalankan dalam urutan berikut:
+
+1. Siapkan project Supabase Cloud dan tabel `competitions`.
+2. Siapkan VPS (Node.js, pnpm, Nginx, clone repo, `.env`).
+3. Jalankan service systemd frontend + backend.
+4. Verifikasi endpoint lokal VPS (`/health`, `/competitions`).
+5. Konfigurasi Nginx + HTTPS.
+6. Pasang GitHub Actions untuk deploy otomatis.
+
+Kalau urutan ini diikuti, biasanya setup selesai dalam satu kali iterasi.
+
+## 1. Setup Supabase Cloud (Wajib)
+
+### 1.1 Buat Project Supabase
+
+1. Buka `https://supabase.com` lalu login.
+2. Klik `New project`.
+3. Pilih organization, isi nama project, password database, region terdekat.
+4. Tunggu sampai status project `Healthy`.
+
+### 1.2 Buat Tabel competitions
+
+Masuk ke `SQL Editor`, jalankan skrip ini:
+
+```sql
+create table if not exists public.competitions (
+  id text primary key,
+  name text not null,
+  slug text not null,
+  organizer text not null,
+  category text not null,
+  "regStart" date not null,
+  "regEnd" date not null,
+  "eventStart" date not null,
+  "eventEnd" date not null,
+  "isPriority" boolean not null default false,
+  "hasGuidebook" boolean not null default false,
+  description text not null,
+  links jsonb not null default '{}'::jsonb,
+  "createdAt" timestamptz not null default now(),
+  "updatedAt" timestamptz not null default now()
+);
+
+create index if not exists competitions_regend_idx on public.competitions ("regEnd");
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new."updatedAt" = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists competitions_set_updated_at on public.competitions;
+
+create trigger competitions_set_updated_at
+before update on public.competitions
+for each row
+execute function public.set_updated_at();
+```
+
+### 1.3 Ambil Credential API Supabase
+
+1. Buka `Project Settings -> API`.
+2. Salin:
+   - `Project URL` -> untuk `SUPABASE_URL`
+   - `service_role key` -> untuk `SUPABASE_SERVICE_ROLE_KEY`
+
+Penting:
+
+- `service_role key` hanya untuk backend/server.
+- jangan taruh `service_role key` di client/browser.
+
+### 1.4 Verifikasi Supabase Siap Dipakai
+
+Di SQL Editor, jalankan:
+
+```sql
+select count(*) from public.competitions;
+```
+
+Kalau query sukses, lanjut ke setup VPS.
+
+## 2. Gambaran Arsitektur Deploy
 
 Contoh arsitektur production:
 
@@ -31,7 +125,7 @@ Contoh domain:
 
 Kalau ingin lebih sederhana, kamu juga bisa memakai satu domain dan mem-proxy backend ke path seperti `/api-internal`, tetapi untuk proyek ini domain terpisah biasanya lebih mudah dikelola.
 
-## 2. Prasyarat
+## 3. Prasyarat
 
 Sebelum mulai, siapkan:
 
@@ -49,7 +143,7 @@ Disarankan spesifikasi minimum:
 
 Kalau traffic masih kecil, spesifikasi itu cukup untuk tahap awal.
 
-## 3. Struktur yang Akan Dipakai di VPS
+## 4. Struktur yang Akan Dipakai di VPS
 
 Contoh struktur direktori:
 
@@ -67,7 +161,7 @@ Contoh port runtime:
 - frontend: `3000`
 - backend: `4000`
 
-## 4. Siapkan VPS
+## 5. Siapkan VPS
 
 Masuk ke VPS:
 
@@ -87,7 +181,7 @@ Install utilitas dasar:
 sudo apt install -y curl git unzip nginx
 ```
 
-## 5. Install Node.js dan pnpm
+## 6. Install Node.js dan pnpm
 
 Gunakan Node.js LTS yang kompatibel dengan Next.js 16.
 
@@ -111,7 +205,7 @@ Catatan:
 - Versi `pnpm` sebaiknya disamakan dengan yang ada di `package.json`.
 - Jika `corepack prepare` gagal, jalankan ulang sebagai user deploy biasa, bukan root.
 
-## 6. Buat User Deploy Khusus
+## 7. Buat User Deploy Khusus
 
 Kalau belum punya user khusus deploy:
 
@@ -122,7 +216,7 @@ sudo usermod -aG sudo deploy
 
 Setelah itu login ulang sebagai `deploy`.
 
-## 7. Buat SSH Key untuk GitHub Actions
+## 8. Buat SSH Key untuk GitHub Actions
 
 Di komputer lokalmu, buat key khusus deploy:
 
@@ -146,7 +240,7 @@ chmod 600 ~/.ssh/authorized_keys
 
 Nanti private key akan disimpan sebagai GitHub Secret.
 
-## 8. Clone Repository di VPS
+## 9. Clone Repository di VPS
 
 Masih di VPS, clone project ke direktori target:
 
@@ -161,13 +255,14 @@ pnpm build
 
 Kalau repo masih private dan VPS perlu akses SSH ke GitHub, pastikan VPS juga memiliki deploy key atau gunakan clone via HTTPS dengan token.
 
-## 9. Siapkan File Environment
+## 10. Siapkan File Environment
 
 Di server, buat file environment untuk runtime root project.
 
 ```bash
 cd /var/www/compbase
 cp .env.example .env
+nano .env
 ```
 
 Contoh isi `.env` di VPS:
@@ -175,6 +270,9 @@ Contoh isi `.env` di VPS:
 ```env
 BACKEND_PORT=4000
 BACKEND_BASE_URL=http://127.0.0.1:4000
+SUPABASE_URL=https://PROJECT-REF.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=isi-service-role-key
+SUPABASE_COMPETITIONS_TABLE=competitions
 BACKEND_ADMIN_TOKEN=ganti-dengan-token-random-panjang
 PORT=3000
 NODE_ENV=production
@@ -186,9 +284,17 @@ Penjelasan:
 
 - `BACKEND_PORT=4000` dipakai backend.
 - `BACKEND_BASE_URL=http://127.0.0.1:4000` aman untuk frontend yang berjalan di server yang sama.
+- `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` dipakai backend untuk konek ke Supabase Cloud.
+- `SUPABASE_SERVICE_ROLE_KEY` wajib disimpan aman di server dan GitHub Secrets, jangan ditaruh di client/browser.
 - `BACKEND_ADMIN_TOKEN` dipakai untuk mengunci endpoint write backend. Jika nilainya diisi, mutasi `POST/PUT/DELETE` wajib mengirim header `x-compbase-admin-token`.
 - `PORT=3000` dipakai Next.js saat `next start`.
 - `ADMIN_EMAIL` dan `ADMIN_PASSWORD` dipakai untuk login panel admin.
+
+Setelah disimpan, amankan permission file:
+
+```bash
+chmod 600 .env
+```
 
 Kalau frontend perlu memanggil backend lewat domain publik, kamu bisa ganti `BACKEND_BASE_URL` ke:
 
@@ -198,7 +304,7 @@ BACKEND_BASE_URL=https://api.compbase.domainkamu.com
 
 Namun untuk satu VPS yang sama, alamat internal `127.0.0.1` biasanya lebih efisien.
 
-## 10. Buat Service systemd untuk Backend
+## 11. Buat Service systemd untuk Backend
 
 Buat file service:
 
@@ -226,7 +332,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-## 11. Buat Service systemd untuk Frontend
+## 12. Buat Service systemd untuk Frontend
 
 Buat file service:
 
@@ -278,7 +384,7 @@ journalctl -u compbase-backend -n 100 --no-pager
 journalctl -u compbase-frontend -n 100 --no-pager
 ```
 
-## 12. Konfigurasi Nginx
+## 13. Konfigurasi Nginx
 
 ### Frontend domain utama
 
@@ -343,7 +449,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-## 13. Pasang HTTPS dengan Certbot
+## 14. Pasang HTTPS dengan Certbot
 
 Install Certbot:
 
@@ -369,7 +475,7 @@ Tes auto-renew:
 sudo certbot renew --dry-run
 ```
 
-## 14. Siapkan GitHub Secrets
+## 15. Siapkan GitHub Secrets
 
 Di repository GitHub, buka:
 
@@ -392,14 +498,14 @@ Tambahkan secret berikut:
 - `VPS_APP_DIR`
   Contoh: `/var/www/compbase`
 
-- Pastikan file `.env` di VPS juga berisi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` yang benar.
-
-Kalau branch deploy khusus dipakai, kamu juga bisa tambah:
-
 - `DEPLOY_BRANCH`
   Contoh: `main`
 
-## 15. Buat Workflow GitHub Actions
+- `.env` yang berisi `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` tetap disimpan di VPS (bukan di repo).
+
+- Pastikan file `.env` di VPS juga berisi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` yang benar.
+
+## 16. Buat Workflow GitHub Actions
 
 Buat file:
 
@@ -455,10 +561,15 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          DEPLOY_BRANCH="${{ secrets.DEPLOY_BRANCH }}"
+          if [ -z "$DEPLOY_BRANCH" ]; then DEPLOY_BRANCH="main"; fi
+
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << EOF
             set -e
             cd ${{ secrets.VPS_APP_DIR }}
-            git pull origin main
+            git fetch origin
+            git checkout "$DEPLOY_BRANCH"
+            git pull origin "$DEPLOY_BRANCH"
             pnpm install --frozen-lockfile
             pnpm --filter backend build
             pnpm --filter frontend build
@@ -469,11 +580,11 @@ jobs:
 
 Catatan penting:
 
-- Workflow ini mengasumsikan branch deploy adalah `main`.
+- Workflow default pakai `main`, tetapi bisa dioverride lewat secret `DEPLOY_BRANCH`.
 - `sudo systemctl restart ...` harus bisa dijalankan oleh user deploy.
 - Jika `sudo` meminta password, tambahkan rule `sudoers` khusus untuk restart service.
 
-## 16. Izinkan Restart Service Tanpa Password
+## 17. Izinkan Restart Service Tanpa Password
 
 Jalankan:
 
@@ -493,7 +604,7 @@ Kalau di server path `systemctl` berbeda, cek dulu:
 which systemctl
 ```
 
-## 17. Uji Deploy Pertama
+## 18. Uji Deploy Pertama
 
 Lakukan satu commit kecil lalu push ke branch deploy:
 
@@ -510,7 +621,7 @@ Setelah itu cek:
 - domain frontend apakah terbuka
 - endpoint backend `https://api.compbase.domainkamu.com/health`
 
-## 18. Checklist Verifikasi Setelah Deploy
+## 19. Checklist Verifikasi Setelah Deploy
 
 - halaman utama frontend terbuka normal
 - spotlight dan katalog kompetisi muncul
@@ -519,8 +630,9 @@ Setelah itu cek:
 - endpoint `/health` merespons `ok: true`
 - endpoint `/competitions` mengembalikan data
 - log `systemd` bersih dari error berulang
+- login admin di `/admin` berhasil dan redirect ke `/admin/panel`
 
-## 19. Rollback Sederhana
+## 20. Rollback Sederhana
 
 Kalau deploy terbaru bermasalah, rollback paling cepat:
 
@@ -537,7 +649,7 @@ sudo systemctl restart compbase-frontend
 
 Kalau ingin rollback yang lebih rapi dalam jangka panjang, buat strategi release berbasis tag atau direktori release terpisah.
 
-## 20. Troubleshooting Umum
+## 21. Troubleshooting Umum
 
 ### Frontend jalan, tapi data katalog kosong
 
@@ -545,7 +657,8 @@ Periksa:
 
 - apakah backend service aktif
 - apakah `BACKEND_BASE_URL` mengarah ke alamat yang benar
-- apakah frontend memakai fallback data lokal
+- apakah `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` backend sudah benar
+- apakah tabel `competitions` di Supabase berisi data
 
 Cek:
 
@@ -590,7 +703,7 @@ journalctl -u compbase-frontend -n 100 --no-pager
 journalctl -u compbase-backend -n 100 --no-pager
 ```
 
-## 21. Rekomendasi Lanjutan
+## 22. Rekomendasi Lanjutan
 
 Setelah deploy dasar berhasil, langkah yang layak dipertimbangkan:
 
@@ -601,7 +714,7 @@ Setelah deploy dasar berhasil, langkah yang layak dipertimbangkan:
 - tambahkan mekanisme health check sebelum restart service
 - pertimbangkan release berbasis tag untuk rollback yang lebih aman
 
-## 22. Ringkasan Singkat Alur Deploy
+## 23. Ringkasan Singkat Alur Deploy
 
 1. Developer push ke GitHub.
 2. GitHub Actions menjalankan install dan build.

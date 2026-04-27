@@ -1,0 +1,23 @@
+[
+  {
+    "id": "cmp-001",
+    "name": "DAC Find It!",
+    "slug": "dac-find-it",
+    "organizer": "UGM",
+    "category": "Data Science",
+    "regStart": "2026-02-09",
+    "regEnd": "2026-03-10",
+    "eventStart": "2026-03-27",
+    "eventEnd": "2026-04-10",
+    "isPriority": false,
+    "hasGuidebook": true,
+    "description": "Tulis ringkasan kompetisi di sini.",
+    "links": {
+      "registration": "https://find-it.id/events/data-analytics",
+      "guidebook": "https://find-it.id/file/DAC-Guidebook-2026.pdf",
+      "instagram": "https://www.instagram.com/ugm.findit/",
+      "linktree": "",
+      "website": "https://find-it.id"
+    }
+  }
+]

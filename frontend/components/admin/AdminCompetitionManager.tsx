@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useState, useTransition } from "react";
+import { useDeferredValue, useRef, useState, useTransition } from "react";
 import {
   createCompetitionAction,
   deleteCompetitionAction,
@@ -9,8 +9,16 @@ import {
   updateCompetitionAction,
 } from "@/app/admin/actions";
 import { competitionSchema } from "@/lib/schemas";
-import type { Competition, CompetitionCategory, CompetitionStatus } from "@/lib/types";
-import { formatDate, formatDateRange, getCompetitionStatus } from "@/lib/utils/competitions";
+import type {
+  Competition,
+  CompetitionCategory,
+  CompetitionStatus,
+} from "@/lib/types";
+import {
+  formatDate,
+  formatDateRange,
+  getCompetitionStatus,
+} from "@/lib/utils/competitions";
 
 interface AdminCompetitionManagerProps {
   initialCompetitions: Competition[];
@@ -24,10 +32,14 @@ type EditableCompetitionField =
   | "regStart"
   | "regEnd"
   | "eventStart"
-  | "eventEnd"
-  | "description";
+  | "eventEnd";
 
-type EditableCompetitionLink = "registration" | "guidebook" | "instagram" | "linktree" | "website";
+type EditableCompetitionLink =
+  | "registration"
+  | "guidebook"
+  | "instagram"
+  | "linktree"
+  | "website";
 
 const CATEGORY_OPTIONS: CompetitionCategory[] = [
   "Dashboard",
@@ -41,24 +53,24 @@ const CATEGORY_OPTIONS: CompetitionCategory[] = [
 ];
 
 function getStatusLabel(status: CompetitionStatus): string {
-  if (status === "open") {
-    return "Masih buka";
+  if (status === "coming-soon") {
+    return "Coming Soon";
   }
 
-  if (status === "closing-soon") {
-    return "Deadline dekat";
+  if (status === "open") {
+    return "Masih buka";
   }
 
   return "Sudah tutup";
 }
 
 function getStatusClassName(status: CompetitionStatus): string {
-  if (status === "open") {
-    return "border-emerald-300/24 bg-emerald-300/10 text-emerald-100";
+  if (status === "coming-soon") {
+    return "border-sky-300/24 bg-sky-300/10 text-sky-100";
   }
 
-  if (status === "closing-soon") {
-    return "border-amber-300/28 bg-amber-300/12 text-amber-100";
+  if (status === "open") {
+    return "border-emerald-300/24 bg-emerald-300/10 text-emerald-100";
   }
 
   return "border-rose-300/28 bg-rose-300/12 text-rose-100";
@@ -76,15 +88,21 @@ function createSlug(name: string, id: string): string {
 }
 
 function getNextCompetitionIndex(competitions: Competition[]): number {
-  const highestIndex = competitions.reduce<number>((currentHighest, competition) => {
-    const numericPart = Number.parseInt(competition.id.replace("cmp-", ""), 10);
+  const highestIndex = competitions.reduce<number>(
+    (currentHighest, competition) => {
+      const numericPart = Number.parseInt(
+        competition.id.replace("cmp-", ""),
+        10,
+      );
 
-    if (Number.isNaN(numericPart)) {
-      return currentHighest;
-    }
+      if (Number.isNaN(numericPart)) {
+        return currentHighest;
+      }
 
-    return Math.max(currentHighest, numericPart);
-  }, 0);
+      return Math.max(currentHighest, numericPart);
+    },
+    0,
+  );
 
   return highestIndex + 1;
 }
@@ -98,13 +116,13 @@ function createEmptyCompetition(nextIndex: number): Competition {
     slug: `kompetisi-baru-${nextIndex}`,
     organizer: "Penyelenggara baru",
     category: "Data Science",
-    regStart: "2026-05-01",
-    regEnd: "2026-05-15",
-    eventStart: "2026-05-20",
-    eventEnd: "2026-05-27",
+    regStart: "",
+    regEnd: "",
+    eventStart: "",
+    eventEnd: "",
     isPriority: false,
     hasGuidebook: false,
-    description: "Tulis ringkasan kompetisi di sini.",
+
     links: {
       registration: "",
       guidebook: "",
@@ -124,7 +142,9 @@ function hasGuidebookLink(competition: Competition): boolean {
 }
 
 function countActiveLinks(competition: Competition): number {
-  return Object.values(competition.links).filter((value) => Boolean(value?.trim())).length;
+  return Object.values(competition.links).filter((value) =>
+    Boolean(value?.trim()),
+  ).length;
 }
 
 function isCompetitionCategory(value: string): value is CompetitionCategory {
@@ -138,7 +158,9 @@ function validateCompetition(competition: Competition): string[] {
     return [];
   }
 
-  const uniqueMessages = new Set(parsedResult.error.issues.map((issue) => issue.message));
+  const uniqueMessages = new Set(
+    parsedResult.error.issues.map((issue) => issue.message),
+  );
 
   return Array.from(uniqueMessages);
 }
@@ -152,8 +174,10 @@ export function AdminCompetitionManager({
   dataStatusMessage = null,
 }: AdminCompetitionManagerProps) {
   const [isMutationPending, startMutationTransition] = useTransition();
-  const [competitions, setCompetitions] = useState<Competition[]>(initialCompetitions);
-  const [savedCompetitions, setSavedCompetitions] = useState<Competition[]>(initialCompetitions);
+  const [competitions, setCompetitions] =
+    useState<Competition[]>(initialCompetitions);
+  const [savedCompetitions, setSavedCompetitions] =
+    useState<Competition[]>(initialCompetitions);
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>(
     initialCompetitions[0]?.id ?? "",
   );
@@ -162,7 +186,28 @@ export function AdminCompetitionManager({
     "Belum ada perubahan baru yang disimpan di sesi browser ini.",
   );
   const deferredSearchValue = useDeferredValue(searchValue);
+  const regStartInputRef = useRef<HTMLInputElement>(null);
+  const regEndInputRef = useRef<HTMLInputElement>(null);
+  const eventStartInputRef = useRef<HTMLInputElement>(null);
+  const eventEndInputRef = useRef<HTMLInputElement>(null);
   const now = new Date();
+
+  const openDatePicker = (inputElement: HTMLInputElement | null): void => {
+    if (!inputElement) {
+      return;
+    }
+
+    const inputWithPicker = inputElement as HTMLInputElement & {
+      showPicker?: () => void;
+    };
+
+    if (typeof inputWithPicker.showPicker === "function") {
+      inputWithPicker.showPicker();
+      return;
+    }
+
+    inputElement.focus();
+  };
 
   const filteredCompetitions = competitions.filter((competition) => {
     const query = normalizeSearchValue(deferredSearchValue);
@@ -177,22 +222,29 @@ export function AdminCompetitionManager({
   });
 
   const selectedCompetition =
-    competitions.find((competition) => competition.id === selectedCompetitionId) ??
+    competitions.find(
+      (competition) => competition.id === selectedCompetitionId,
+    ) ??
     competitions[0] ??
     null;
 
   const selectedSavedCompetition =
-    savedCompetitions.find((competition) => competition.id === selectedCompetitionId) ?? null;
+    savedCompetitions.find(
+      (competition) => competition.id === selectedCompetitionId,
+    ) ?? null;
 
-  const selectedValidationErrors = selectedCompetition ? validateCompetition(selectedCompetition) : [];
+  const selectedValidationErrors = selectedCompetition
+    ? validateCompetition(selectedCompetition)
+    : [];
   const hasUnsavedChanges =
-    serializeCompetitions(competitions) !== serializeCompetitions(savedCompetitions);
+    serializeCompetitions(competitions) !==
+    serializeCompetitions(savedCompetitions);
 
   const openCompetitions = competitions.filter(
     (competition) => getCompetitionStatus(competition, now) === "open",
   ).length;
-  const closingSoonCompetitions = competitions.filter(
-    (competition) => getCompetitionStatus(competition, now) === "closing-soon",
+  const comingSoonCompetitions = competitions.filter(
+    (competition) => getCompetitionStatus(competition, now) === "coming-soon",
   ).length;
   const closedCompetitions = competitions.filter(
     (competition) => getCompetitionStatus(competition, now) === "closed",
@@ -209,7 +261,10 @@ export function AdminCompetitionManager({
     );
   };
 
-  const handleFieldChange = (field: EditableCompetitionField, value: string): void => {
+  const handleFieldChange = (
+    field: EditableCompetitionField,
+    value: string,
+  ): void => {
     if (!selectedCompetition) {
       return;
     }
@@ -239,18 +294,10 @@ export function AdminCompetitionManager({
     });
   };
 
-  const handleToggleChange = (field: "isPriority", value: boolean): void => {
-    if (!selectedCompetition) {
-      return;
-    }
-
-    updateCompetition(selectedCompetition.id, (competition) => ({
-      ...competition,
-      [field]: value,
-    }));
-  };
-
-  const handleLinkChange = (field: EditableCompetitionLink, value: string): void => {
+  const handleLinkChange = (
+    field: EditableCompetitionLink,
+    value: string,
+  ): void => {
     if (!selectedCompetition) {
       return;
     }
@@ -288,7 +335,10 @@ export function AdminCompetitionManager({
 
     startMutationTransition(async () => {
       const mutationResult = hasSavedVersion
-        ? await updateCompetitionAction(selectedCompetitionIdValue, selectedCompetition)
+        ? await updateCompetitionAction(
+            selectedCompetitionIdValue,
+            selectedCompetition,
+          )
         : await createCompetitionAction(selectedCompetition);
 
       if (!mutationResult.ok || !mutationResult.competition) {
@@ -303,7 +353,9 @@ export function AdminCompetitionManager({
 
       setCompetitions((currentCompetitions) =>
         currentCompetitions.map((competition) =>
-          competition.id === persistedCompetition.id ? persistedCompetition : competition,
+          competition.id === persistedCompetition.id
+            ? persistedCompetition
+            : competition,
         ),
       );
 
@@ -317,7 +369,9 @@ export function AdminCompetitionManager({
         }
 
         return currentCompetitions.map((competition) =>
-          competition.id === persistedCompetition.id ? persistedCompetition : competition,
+          competition.id === persistedCompetition.id
+            ? persistedCompetition
+            : competition,
         );
       });
 
@@ -330,11 +384,18 @@ export function AdminCompetitionManager({
   };
 
   const handleAddCompetition = (): void => {
-    const nextCompetition = createEmptyCompetition(getNextCompetitionIndex(competitions));
+    const nextCompetition = createEmptyCompetition(
+      getNextCompetitionIndex(competitions),
+    );
 
-    setCompetitions((currentCompetitions) => [nextCompetition, ...currentCompetitions]);
+    setCompetitions((currentCompetitions) => [
+      nextCompetition,
+      ...currentCompetitions,
+    ]);
     setSelectedCompetitionId(nextCompetition.id);
-    setSaveMessage(`Draft baru "${nextCompetition.name}" sudah ditambahkan dan siap dilengkapi.`);
+    setSaveMessage(
+      `Draft baru "${nextCompetition.name}" sudah ditambahkan dan siap dilengkapi.`,
+    );
   };
 
   const handleDuplicateCompetition = (): void => {
@@ -349,11 +410,19 @@ export function AdminCompetitionManager({
       name: `${selectedCompetition.name} Copy`,
     };
 
-    duplicatedCompetition.slug = createSlug(duplicatedCompetition.name, duplicatedCompetition.id);
+    duplicatedCompetition.slug = createSlug(
+      duplicatedCompetition.name,
+      duplicatedCompetition.id,
+    );
 
-    setCompetitions((currentCompetitions) => [duplicatedCompetition, ...currentCompetitions]);
+    setCompetitions((currentCompetitions) => [
+      duplicatedCompetition,
+      ...currentCompetitions,
+    ]);
     setSelectedCompetitionId(duplicatedCompetition.id);
-    setSaveMessage(`Salinan baru dari "${selectedCompetition.name}" sudah dibuat.`);
+    setSaveMessage(
+      `Salinan baru dari "${selectedCompetition.name}" sudah dibuat.`,
+    );
   };
 
   const handleResetSelectedCompetition = (): void => {
@@ -368,12 +437,16 @@ export function AdminCompetitionManager({
 
       setCompetitions(remainingCompetitions);
       setSelectedCompetitionId(remainingCompetitions[0]?.id ?? "");
-      setSaveMessage(`Draft "${selectedCompetition.name}" dibatalkan karena belum pernah disimpan.`);
+      setSaveMessage(
+        `Draft "${selectedCompetition.name}" dibatalkan karena belum pernah disimpan.`,
+      );
       return;
     }
 
     updateCompetition(selectedCompetition.id, () => selectedSavedCompetition);
-    setSaveMessage(`Perubahan pada "${selectedCompetition.name}" sudah dikembalikan ke versi tersimpan.`);
+    setSaveMessage(
+      `Perubahan pada "${selectedCompetition.name}" sudah dikembalikan ke versi tersimpan.`,
+    );
   };
 
   const handleDeleteCompetition = (): void => {
@@ -394,12 +467,16 @@ export function AdminCompetitionManager({
 
       setCompetitions(remainingCompetitions);
       setSelectedCompetitionId(remainingCompetitions[0]?.id ?? "");
-      setSaveMessage(`Draft "${selectedCompetitionName}" dibatalkan karena belum pernah dikirim ke backend.`);
+      setSaveMessage(
+        `Draft "${selectedCompetitionName}" dibatalkan karena belum pernah dikirim ke backend.`,
+      );
       return;
     }
 
     startMutationTransition(async () => {
-      const mutationResult = await deleteCompetitionAction(selectedCompetitionIdValue);
+      const mutationResult = await deleteCompetitionAction(
+        selectedCompetitionIdValue,
+      );
 
       if (!mutationResult.ok || !mutationResult.deletedId) {
         setSaveMessage(
@@ -426,10 +503,14 @@ export function AdminCompetitionManager({
       });
 
       setSavedCompetitions((currentCompetitions) =>
-        currentCompetitions.filter((competition) => competition.id !== deletedId),
+        currentCompetitions.filter(
+          (competition) => competition.id !== deletedId,
+        ),
       );
 
-      setSaveMessage(`"${selectedCompetitionName}" berhasil dihapus dari backend.`);
+      setSaveMessage(
+        `"${selectedCompetitionName}" berhasil dihapus dari backend.`,
+      );
     });
   };
 
@@ -453,7 +534,9 @@ export function AdminCompetitionManager({
                   Kelola kompetisi dengan meja kerja yang lebih rapi.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-300 sm:text-base">
-                  Panel ini sekarang sudah diproteksi login admin dan dirapikan untuk mengelola detail lomba, jadwal, deskripsi, prioritas, dan tautan penting dengan lebih aman.
+                  Panel ini sekarang sudah diproteksi login admin dan dirapikan
+                  untuk mengelola detail lomba, jadwal, deskripsi, prioritas,
+                  dan tautan penting dengan lebih aman.
                 </p>
               </div>
             </div>
@@ -481,31 +564,42 @@ export function AdminCompetitionManager({
 
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-5 py-4 text-center backdrop-blur-md">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Total data</p>
-            <p className="mt-2 text-3xl font-semibold text-zinc-50">{competitions.length}</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+              Total data
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-zinc-50">
+              {competitions.length}
+            </p>
           </div>
           <div className="rounded-[1.25rem] border border-emerald-300/18 bg-emerald-300/10 px-5 py-4 text-center backdrop-blur-md">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-100/75">Masih buka</p>
-            <p className="mt-2 text-3xl font-semibold text-emerald-50">{openCompetitions}</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-100/75">
+              Masih buka
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-emerald-50">
+              {openCompetitions}
+            </p>
           </div>
-          <div className="rounded-[1.25rem] border border-amber-300/18 bg-amber-300/10 px-5 py-4 text-center backdrop-blur-md">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-amber-100/75">Deadline dekat</p>
-            <p className="mt-2 text-3xl font-semibold text-amber-50">{closingSoonCompetitions}</p>
+          <div className="rounded-[1.25rem] border border-sky-300/18 bg-sky-300/10 px-5 py-4 text-center backdrop-blur-md">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-sky-100/75">
+              Coming Soon
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-sky-50">
+              {comingSoonCompetitions}
+            </p>
           </div>
           <div className="rounded-[1.25rem] border border-rose-300/18 bg-rose-300/10 px-5 py-4 text-center backdrop-blur-md">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-rose-100/75">Sudah tutup</p>
-            <p className="mt-2 text-3xl font-semibold text-rose-50">{closedCompetitions}</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-rose-100/75">
+              Sudah tutup
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-rose-50">
+              {closedCompetitions}
+            </p>
           </div>
         </section>
 
         {dataStatusMessage ? (
           <section className="rounded-[1.25rem] border border-amber-200/14 bg-amber-200/8 px-4 py-3 text-sm text-amber-50 backdrop-blur-md sm:px-5">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <p>{dataStatusMessage}</p>
-              <span className="text-xs uppercase tracking-[0.22em] text-amber-100/70">
-                Sumber data lokal
-              </span>
-            </div>
+            <p>{dataStatusMessage}</p>
           </section>
         ) : null}
 
@@ -514,16 +608,33 @@ export function AdminCompetitionManager({
             <div className="flex flex-col gap-4 border-b border-white/8 pb-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Daftar kompetisi</p>
-                  <h2 className="mt-2 font-brand text-3xl text-zinc-50">Pilih data yang ingin diperbarui</h2>
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                    Daftar kompetisi
+                  </p>
+                  <h2 className="mt-2 font-brand text-3xl text-zinc-50">
+                    Pilih data yang ingin diperbarui
+                  </h2>
                 </div>
-                <div className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-xs text-zinc-400">
-                  {filteredCompetitions.length} dari {competitions.length} data
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isMutationPending}
+                    onClick={handleAddCompetition}
+                    className="inline-flex h-9 items-center justify-center rounded-full bg-amber-200 px-4 text-xs font-semibold uppercase tracking-wide text-zinc-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Tambah kompetisi
+                  </button>
+                  <div className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-xs text-zinc-400">
+                    {filteredCompetitions.length} dari {competitions.length}{" "}
+                    data
+                  </div>
                 </div>
               </div>
 
               <label className="grid gap-2 text-sm">
-                <span className="font-medium text-zinc-200">Cari kompetisi</span>
+                <span className="font-medium text-zinc-200">
+                  Cari kompetisi
+                </span>
                 <input
                   type="text"
                   value={searchValue}
@@ -554,8 +665,12 @@ export function AdminCompetitionManager({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-zinc-100">{competition.name}</p>
-                          <p className="mt-1 text-xs text-zinc-500">{competition.organizer}</p>
+                          <p className="text-sm font-medium text-zinc-100">
+                            {competition.name}
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-500">
+                            {competition.organizer}
+                          </p>
                         </div>
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getStatusClassName(status)}`}
@@ -604,10 +719,16 @@ export function AdminCompetitionManager({
                 <div className="flex flex-col gap-5 border-b border-white/8 pb-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Editor kompetisi</p>
-                      <h2 className="mt-2 font-brand text-3xl text-zinc-50">{selectedCompetition.name}</h2>
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                        Editor kompetisi
+                      </p>
+                      <h2 className="mt-2 font-brand text-3xl text-zinc-50">
+                        {selectedCompetition.name}
+                      </h2>
                       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-                        Perubahan tetap bisa ditinjau sebagai draft di editor, lalu dikirim ke backend lewat tombol simpan agar katalog publik dan panel admin selalu sinkron.
+                        Perubahan tetap bisa ditinjau sebagai draft di editor,
+                        lalu dikirim ke backend lewat tombol simpan agar katalog
+                        publik dan panel admin selalu sinkron.
                       </p>
                     </div>
 
@@ -661,7 +782,9 @@ export function AdminCompetitionManager({
 
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
                   <div className="rounded-[1.15rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
-                    {isMutationPending ? "Sedang menyinkronkan perubahan ke backend..." : saveMessage}
+                    {isMutationPending
+                      ? "Sedang menyinkronkan perubahan ke backend..."
+                      : saveMessage}
                   </div>
                   <div className="rounded-[1.15rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
                     <div className="flex items-center justify-between gap-3">
@@ -671,8 +794,8 @@ export function AdminCompetitionManager({
                           isMutationPending
                             ? "bg-sky-300/12 text-sky-100"
                             : hasUnsavedChanges
-                            ? "bg-amber-300/12 text-amber-100"
-                            : "bg-emerald-300/12 text-emerald-100"
+                              ? "bg-amber-300/12 text-amber-100"
+                              : "bg-emerald-300/12 text-emerald-100"
                         }`}
                       >
                         {isMutationPending
@@ -687,7 +810,9 @@ export function AdminCompetitionManager({
 
                 {selectedValidationErrors.length > 0 ? (
                   <section className="rounded-[1.25rem] border border-rose-300/16 bg-rose-300/10 p-4 text-sm text-rose-50">
-                    <p className="font-medium">Data ini masih perlu dirapikan sebelum disimpan:</p>
+                    <p className="font-medium">
+                      Data ini masih perlu dirapikan sebelum disimpan:
+                    </p>
                     <ul className="mt-3 grid gap-2 text-rose-100/90">
                       {selectedValidationErrors.map((errorMessage) => (
                         <li key={errorMessage}>• {errorMessage}</li>
@@ -696,38 +821,51 @@ export function AdminCompetitionManager({
                   </section>
                 ) : (
                   <section className="rounded-[1.25rem] border border-emerald-300/16 bg-emerald-300/10 p-4 text-sm text-emerald-50">
-                    Data inti untuk kompetisi ini sudah rapi di level editor lokal.
+                    Data inti untuk kompetisi ini sudah rapi di level editor
+                    lokal.
                   </section>
                 )}
 
                 <div className="grid gap-6">
                   <section className="grid gap-4 lg:grid-cols-2">
                     <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Nama kompetisi</span>
+                      <span className="font-medium text-zinc-200">
+                        Nama kompetisi
+                      </span>
                       <input
                         type="text"
                         value={selectedCompetition.name}
-                        onChange={(event) => handleFieldChange("name", event.target.value)}
+                        onChange={(event) =>
+                          handleFieldChange("name", event.target.value)
+                        }
                         className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                       />
                     </label>
 
                     <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Penyelenggara</span>
+                      <span className="font-medium text-zinc-200">
+                        Penyelenggara
+                      </span>
                       <input
                         type="text"
                         value={selectedCompetition.organizer}
-                        onChange={(event) => handleFieldChange("organizer", event.target.value)}
+                        onChange={(event) =>
+                          handleFieldChange("organizer", event.target.value)
+                        }
                         className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                       />
                     </label>
 
                     <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Kategori</span>
+                      <span className="font-medium text-zinc-200">
+                        Kategori
+                      </span>
                       <div className="relative">
                         <select
                           value={selectedCompetition.category}
-                          onChange={(event) => handleFieldChange("category", event.target.value)}
+                          onChange={(event) =>
+                            handleFieldChange("category", event.target.value)
+                          }
                           className="h-11 w-full appearance-none rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-12 text-zinc-100 outline-none ring-amber-200/30 focus:ring [&>option]:bg-zinc-50 [&>option]:text-zinc-950"
                         >
                           {CATEGORY_OPTIONS.map((category) => (
@@ -737,8 +875,20 @@ export function AdminCompetitionManager({
                           ))}
                         </select>
                         <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-400">
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                            <path d="M4 6.25L8 10.25L12 6.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 6.25L8 10.25L12 6.25"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           </svg>
                         </span>
                       </div>
@@ -757,83 +907,259 @@ export function AdminCompetitionManager({
 
                   <section className="grid gap-4 rounded-[1.3rem] border border-white/8 bg-white/[0.025] p-4 sm:p-5 lg:grid-cols-2">
                     <div className="lg:col-span-2">
-                      <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Jadwal utama</p>
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                        Jadwal utama
+                      </p>
                     </div>
 
                     <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Buka registrasi</span>
-                      <input
-                        type="date"
-                        value={selectedCompetition.regStart}
-                        onChange={(event) => handleFieldChange("regStart", event.target.value)}
-                        className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
-                      />
-                    </label>
-
-                    <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Tutup registrasi</span>
-                      <input
-                        type="date"
-                        value={selectedCompetition.regEnd}
-                        onChange={(event) => handleFieldChange("regEnd", event.target.value)}
-                        className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
-                      />
-                    </label>
-
-                    <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Mulai pelaksanaan</span>
-                      <input
-                        type="date"
-                        value={selectedCompetition.eventStart}
-                        onChange={(event) => handleFieldChange("eventStart", event.target.value)}
-                        className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
-                      />
-                    </label>
-
-                    <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Selesai pelaksanaan</span>
-                      <input
-                        type="date"
-                        value={selectedCompetition.eventEnd}
-                        onChange={(event) => handleFieldChange("eventEnd", event.target.value)}
-                        className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
-                      />
-                    </label>
-                  </section>
-
-                  <section className="grid gap-4 rounded-[1.3rem] border border-white/8 bg-white/[0.025] p-4 sm:p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Deskripsi dan prioritas</p>
-                        <h3 className="mt-2 text-lg font-semibold text-zinc-50">Rapikan konteks kompetisi</h3>
-                      </div>
-                      <label className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-200">
+                      <span className="font-medium text-zinc-200">
+                        Buka registrasi
+                      </span>
+                      <div className="relative">
                         <input
-                          type="checkbox"
-                          checked={selectedCompetition.isPriority}
-                          onChange={(event) => handleToggleChange("isPriority", event.target.checked)}
-                          className="h-4 w-4 rounded border-white/20 bg-transparent text-amber-200 focus:ring-amber-200/30"
+                          ref={regStartInputRef}
+                          type="date"
+                          value={selectedCompetition.regStart}
+                          onChange={(event) =>
+                            handleFieldChange("regStart", event.target.value)
+                          }
+                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                         />
-                        Jadikan prioritas
-                      </label>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openDatePicker(regStartInputRef.current)
+                          }
+                          aria-label="Buka kalender tanggal buka registrasi"
+                          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M12 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <rect
+                              x="2.5"
+                              y="2.75"
+                              width="11"
+                              height="10.75"
+                              rx="2"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M2.5 5.75H13.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </label>
 
                     <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">Deskripsi kompetisi</span>
-                      <textarea
-                        value={selectedCompetition.description}
-                        onChange={(event) => handleFieldChange("description", event.target.value)}
-                        rows={5}
-                        className="rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 py-3 text-zinc-100 outline-none ring-amber-200/30 placeholder:text-zinc-500 focus:ring"
-                      />
+                      <span className="font-medium text-zinc-200">
+                        Tutup registrasi
+                      </span>
+                      <div className="relative">
+                        <input
+                          ref={regEndInputRef}
+                          type="date"
+                          value={selectedCompetition.regEnd}
+                          onChange={(event) =>
+                            handleFieldChange("regEnd", event.target.value)
+                          }
+                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => openDatePicker(regEndInputRef.current)}
+                          aria-label="Buka kalender tanggal tutup registrasi"
+                          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M12 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <rect
+                              x="2.5"
+                              y="2.75"
+                              width="11"
+                              height="10.75"
+                              rx="2"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M2.5 5.75H13.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </label>
+
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-zinc-200">
+                        Mulai pelaksanaan
+                      </span>
+                      <div className="relative">
+                        <input
+                          ref={eventStartInputRef}
+                          type="date"
+                          value={selectedCompetition.eventStart}
+                          onChange={(event) =>
+                            handleFieldChange("eventStart", event.target.value)
+                          }
+                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openDatePicker(eventStartInputRef.current)
+                          }
+                          aria-label="Buka kalender tanggal mulai pelaksanaan"
+                          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M12 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <rect
+                              x="2.5"
+                              y="2.75"
+                              width="11"
+                              height="10.75"
+                              rx="2"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M2.5 5.75H13.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </label>
+
+                    <label className="grid gap-2 text-sm">
+                      <span className="font-medium text-zinc-200">
+                        Selesai pelaksanaan
+                      </span>
+                      <div className="relative">
+                        <input
+                          ref={eventEndInputRef}
+                          type="date"
+                          value={selectedCompetition.eventEnd}
+                          onChange={(event) =>
+                            handleFieldChange("eventEnd", event.target.value)
+                          }
+                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openDatePicker(eventEndInputRef.current)
+                          }
+                          aria-label="Buka kalender tanggal selesai pelaksanaan"
+                          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M12 1.75V3.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                            <rect
+                              x="2.5"
+                              y="2.75"
+                              width="11"
+                              height="10.75"
+                              rx="2"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M2.5 5.75H13.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </label>
                   </section>
 
                   <section className="grid gap-4 rounded-[1.3rem] border border-white/8 bg-white/[0.025] p-4 sm:p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Tautan kompetisi</p>
-                        <h3 className="mt-2 text-lg font-semibold text-zinc-50">Perbarui link penting</h3>
+                        <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                          Tautan kompetisi
+                        </p>
+                        <h3 className="mt-2 text-lg font-semibold text-zinc-50">
+                          Perbarui link penting
+                        </h3>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <span
@@ -843,7 +1169,9 @@ export function AdminCompetitionManager({
                               : "border-white/10 bg-white/[0.03] text-zinc-300"
                           }`}
                         >
-                          {hasGuidebookLink(selectedCompetition) ? "Guidebook aktif" : "Guidebook nonaktif"}
+                          {hasGuidebookLink(selectedCompetition)
+                            ? "Guidebook aktif"
+                            : "Guidebook nonaktif"}
                         </span>
                         <span className="inline-flex h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 text-xs font-semibold uppercase tracking-wide text-zinc-300">
                           {countActiveLinks(selectedCompetition)} link aktif
@@ -853,51 +1181,71 @@ export function AdminCompetitionManager({
 
                     <div className="grid gap-4 lg:grid-cols-2">
                       <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-zinc-200">Link registrasi</span>
+                        <span className="font-medium text-zinc-200">
+                          Link registrasi
+                        </span>
                         <input
                           type="url"
                           value={selectedCompetition.links.registration ?? ""}
-                          onChange={(event) => handleLinkChange("registration", event.target.value)}
+                          onChange={(event) =>
+                            handleLinkChange("registration", event.target.value)
+                          }
                           className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                         />
                       </label>
 
                       <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-zinc-200">Link guidebook</span>
+                        <span className="font-medium text-zinc-200">
+                          Link guidebook
+                        </span>
                         <input
                           type="url"
                           value={selectedCompetition.links.guidebook ?? ""}
-                          onChange={(event) => handleLinkChange("guidebook", event.target.value)}
+                          onChange={(event) =>
+                            handleLinkChange("guidebook", event.target.value)
+                          }
                           className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                         />
                       </label>
 
                       <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-zinc-200">Instagram</span>
+                        <span className="font-medium text-zinc-200">
+                          Instagram
+                        </span>
                         <input
                           type="url"
                           value={selectedCompetition.links.instagram ?? ""}
-                          onChange={(event) => handleLinkChange("instagram", event.target.value)}
+                          onChange={(event) =>
+                            handleLinkChange("instagram", event.target.value)
+                          }
                           className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                         />
                       </label>
 
                       <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-zinc-200">Linktree</span>
+                        <span className="font-medium text-zinc-200">
+                          Linktree
+                        </span>
                         <input
                           type="url"
                           value={selectedCompetition.links.linktree ?? ""}
-                          onChange={(event) => handleLinkChange("linktree", event.target.value)}
+                          onChange={(event) =>
+                            handleLinkChange("linktree", event.target.value)
+                          }
                           className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                         />
                       </label>
 
                       <label className="grid gap-2 text-sm lg:col-span-2">
-                        <span className="font-medium text-zinc-200">Website resmi</span>
+                        <span className="font-medium text-zinc-200">
+                          Website resmi
+                        </span>
                         <input
                           type="url"
                           value={selectedCompetition.links.website ?? ""}
-                          onChange={(event) => handleLinkChange("website", event.target.value)}
+                          onChange={(event) =>
+                            handleLinkChange("website", event.target.value)
+                          }
                           className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
                         />
                       </label>
@@ -906,21 +1254,35 @@ export function AdminCompetitionManager({
 
                   <section className="grid gap-4 rounded-[1.3rem] border border-white/8 bg-white/[0.025] p-4 sm:p-5 lg:grid-cols-3">
                     <div className="rounded-[1rem] border border-white/8 bg-black/10 px-4 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Status</p>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+                        Status
+                      </p>
                       <p className="mt-2 text-base font-semibold text-zinc-50">
-                        {getStatusLabel(getCompetitionStatus(selectedCompetition, now))}
+                        {getStatusLabel(
+                          getCompetitionStatus(selectedCompetition, now),
+                        )}
                       </p>
                     </div>
                     <div className="rounded-[1rem] border border-white/8 bg-black/10 px-4 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Pendaftaran</p>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+                        Pendaftaran
+                      </p>
                       <p className="mt-2 text-sm font-medium text-zinc-100">
-                        {formatDateRange(selectedCompetition.regStart, selectedCompetition.regEnd)}
+                        {formatDateRange(
+                          selectedCompetition.regStart,
+                          selectedCompetition.regEnd,
+                        )}
                       </p>
                     </div>
                     <div className="rounded-[1rem] border border-white/8 bg-black/10 px-4 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Pelaksanaan</p>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+                        Pelaksanaan
+                      </p>
                       <p className="mt-2 text-sm font-medium text-zinc-100">
-                        {formatDateRange(selectedCompetition.eventStart, selectedCompetition.eventEnd)}
+                        {formatDateRange(
+                          selectedCompetition.eventStart,
+                          selectedCompetition.eventEnd,
+                        )}
                       </p>
                     </div>
                   </section>
@@ -932,10 +1294,6 @@ export function AdminCompetitionManager({
               </div>
             )}
           </section>
-        </section>
-
-        <section className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-zinc-400 backdrop-blur-md">
-          Panel admin sekarang sudah bisa membaca dan memutasi data kompetisi lewat backend pada aksi simpan serta hapus. Jika backend tidak tersedia, pesan error akan muncul agar perbaikan bisa dilakukan segera.
         </section>
       </div>
     </main>

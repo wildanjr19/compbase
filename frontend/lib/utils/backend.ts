@@ -8,7 +8,7 @@ export interface BackendHealth {
 
 export interface CompetitionApiResult {
   competitions: Competition[];
-  source: "backend" | "fallback";
+  source: "backend" | "unavailable";
   errorMessage: string | null;
 }
 
@@ -45,7 +45,9 @@ function getBackendAdminToken(): string | null {
   return configuredToken ? configuredToken : null;
 }
 
-function getMutationHeaders(includeJsonContentType: boolean): Record<string, string> {
+function getMutationHeaders(
+  includeJsonContentType: boolean,
+): Record<string, string> {
   const headers: Record<string, string> = {};
 
   if (includeJsonContentType) {
@@ -90,9 +92,17 @@ function isCompetitionLinks(value: unknown): value is Competition["links"] {
   if (!links) {
     return false;
   }
-  const allowedKeys = ["registration", "guidebook", "instagram", "linktree", "website"];
+  const allowedKeys = [
+    "registration",
+    "guidebook",
+    "instagram",
+    "linktree",
+    "website",
+  ];
 
-  return allowedKeys.every((key) => links[key] === undefined || typeof links[key] === "string");
+  return allowedKeys.every(
+    (key) => links[key] === undefined || typeof links[key] === "string",
+  );
 }
 
 function isCompetition(value: unknown): value is Competition {
@@ -114,12 +124,13 @@ function isCompetition(value: unknown): value is Competition {
     typeof competition.eventEnd === "string" &&
     typeof competition.isPriority === "boolean" &&
     typeof competition.hasGuidebook === "boolean" &&
-    typeof competition.description === "string" &&
     isCompetitionLinks(competition.links)
   );
 }
 
-function isCompetitionsApiPayload(value: unknown): value is CompetitionsApiPayload {
+function isCompetitionsApiPayload(
+  value: unknown,
+): value is CompetitionsApiPayload {
   const payload = toRecord(value);
 
   if (!payload) {
@@ -134,7 +145,9 @@ function isCompetitionsApiPayload(value: unknown): value is CompetitionsApiPaylo
   );
 }
 
-function isCompetitionMutationApiPayload(value: unknown): value is CompetitionMutationApiPayload {
+function isCompetitionMutationApiPayload(
+  value: unknown,
+): value is CompetitionMutationApiPayload {
   const payload = toRecord(value);
 
   if (!payload) {
@@ -144,7 +157,9 @@ function isCompetitionMutationApiPayload(value: unknown): value is CompetitionMu
   return payload.ok === true && isCompetition(payload.data);
 }
 
-function isCompetitionDeleteApiPayload(value: unknown): value is CompetitionDeleteApiPayload {
+function isCompetitionDeleteApiPayload(
+  value: unknown,
+): value is CompetitionDeleteApiPayload {
   const payload = toRecord(value);
 
   if (!payload) {
@@ -161,7 +176,10 @@ function getBackendErrorMessage(payload: unknown): string | null {
     return null;
   }
 
-  if (typeof responsePayload.error === "string" && responsePayload.error.trim()) {
+  if (
+    typeof responsePayload.error === "string" &&
+    responsePayload.error.trim()
+  ) {
     return responsePayload.error;
   }
 
@@ -176,7 +194,9 @@ async function parseResponsePayload(response: Response): Promise<unknown> {
   }
 }
 
-export async function getBackendHealth(baseUrl: string): Promise<BackendHealth | null> {
+export async function getBackendHealth(
+  baseUrl: string,
+): Promise<BackendHealth | null> {
   try {
     const response = await fetch(`${baseUrl}/health`, {
       method: "GET",
@@ -200,9 +220,7 @@ export async function getBackendHealth(baseUrl: string): Promise<BackendHealth |
   }
 }
 
-export async function getCompetitionsFromBackend(
-  fallbackCompetitions: Competition[],
-): Promise<CompetitionApiResult> {
+export async function getCompetitionsFromBackend(): Promise<CompetitionApiResult> {
   const baseUrl = getBackendBaseUrl();
 
   try {
@@ -214,9 +232,9 @@ export async function getCompetitionsFromBackend(
 
     if (!response.ok) {
       return {
-        competitions: fallbackCompetitions,
-        source: "fallback",
-        errorMessage: "Katalog sementara memakai data lokal karena backend belum merespons normal.",
+        competitions: [],
+        source: "unavailable",
+        errorMessage: "Data kompetisi belum bisa dimuat saat ini.",
       };
     }
 
@@ -224,9 +242,10 @@ export async function getCompetitionsFromBackend(
 
     if (!isCompetitionsApiPayload(payload)) {
       return {
-        competitions: fallbackCompetitions,
-        source: "fallback",
-        errorMessage: "Katalog sementara memakai data lokal karena format respons backend belum sesuai.",
+        competitions: [],
+        source: "unavailable",
+        errorMessage:
+          "Format respons backend belum sesuai untuk data kompetisi.",
       };
     }
 
@@ -237,14 +256,17 @@ export async function getCompetitionsFromBackend(
     };
   } catch {
     return {
-      competitions: fallbackCompetitions,
-      source: "fallback",
-      errorMessage: "Katalog sementara memakai data lokal karena backend belum terhubung.",
+      competitions: [],
+      source: "unavailable",
+      errorMessage:
+        "Backend belum terhubung ke Supabase atau sedang tidak tersedia.",
     };
   }
 }
 
-export async function createCompetitionInBackend(competition: Competition): Promise<Competition> {
+export async function createCompetitionInBackend(
+  competition: Competition,
+): Promise<Competition> {
   const baseUrl = getBackendBaseUrl();
 
   try {
@@ -259,12 +281,15 @@ export async function createCompetitionInBackend(competition: Competition): Prom
 
     if (!response.ok) {
       throw new Error(
-        getBackendErrorMessage(payload) ?? "Backend gagal membuat data kompetisi baru.",
+        getBackendErrorMessage(payload) ??
+          "Backend gagal membuat data kompetisi baru.",
       );
     }
 
     if (!isCompetitionMutationApiPayload(payload)) {
-      throw new Error("Format respons backend untuk membuat kompetisi belum sesuai.");
+      throw new Error(
+        "Format respons backend untuk membuat kompetisi belum sesuai.",
+      );
     }
 
     return payload.data;
@@ -284,23 +309,29 @@ export async function updateCompetitionInBackend(
   const baseUrl = getBackendBaseUrl();
 
   try {
-    const response = await fetch(`${baseUrl}/competitions/${encodeURIComponent(competitionId)}`, {
-      method: "PUT",
-      cache: "no-store",
-      headers: getMutationHeaders(true),
-      body: JSON.stringify(competition),
-      signal: AbortSignal.timeout(COMPETITIONS_FETCH_TIMEOUT_MS),
-    });
+    const response = await fetch(
+      `${baseUrl}/competitions/${encodeURIComponent(competitionId)}`,
+      {
+        method: "PUT",
+        cache: "no-store",
+        headers: getMutationHeaders(true),
+        body: JSON.stringify(competition),
+        signal: AbortSignal.timeout(COMPETITIONS_FETCH_TIMEOUT_MS),
+      },
+    );
     const payload = await parseResponsePayload(response);
 
     if (!response.ok) {
       throw new Error(
-        getBackendErrorMessage(payload) ?? "Backend gagal memperbarui data kompetisi.",
+        getBackendErrorMessage(payload) ??
+          "Backend gagal memperbarui data kompetisi.",
       );
     }
 
     if (!isCompetitionMutationApiPayload(payload)) {
-      throw new Error("Format respons backend untuk pembaruan kompetisi belum sesuai.");
+      throw new Error(
+        "Format respons backend untuk pembaruan kompetisi belum sesuai.",
+      );
     }
 
     return payload.data;
@@ -309,28 +340,40 @@ export async function updateCompetitionInBackend(
       throw error;
     }
 
-    throw new Error("Terjadi kendala saat memperbarui data kompetisi ke backend.");
+    throw new Error(
+      "Terjadi kendala saat memperbarui data kompetisi ke backend.",
+    );
   }
 }
 
-export async function deleteCompetitionFromBackend(competitionId: string): Promise<string> {
+export async function deleteCompetitionFromBackend(
+  competitionId: string,
+): Promise<string> {
   const baseUrl = getBackendBaseUrl();
 
   try {
-    const response = await fetch(`${baseUrl}/competitions/${encodeURIComponent(competitionId)}`, {
-      method: "DELETE",
-      cache: "no-store",
-      headers: getMutationHeaders(false),
-      signal: AbortSignal.timeout(COMPETITIONS_FETCH_TIMEOUT_MS),
-    });
+    const response = await fetch(
+      `${baseUrl}/competitions/${encodeURIComponent(competitionId)}`,
+      {
+        method: "DELETE",
+        cache: "no-store",
+        headers: getMutationHeaders(false),
+        signal: AbortSignal.timeout(COMPETITIONS_FETCH_TIMEOUT_MS),
+      },
+    );
     const payload = await parseResponsePayload(response);
 
     if (!response.ok) {
-      throw new Error(getBackendErrorMessage(payload) ?? "Backend gagal menghapus data kompetisi.");
+      throw new Error(
+        getBackendErrorMessage(payload) ??
+          "Backend gagal menghapus data kompetisi.",
+      );
     }
 
     if (!isCompetitionDeleteApiPayload(payload)) {
-      throw new Error("Format respons backend untuk penghapusan kompetisi belum sesuai.");
+      throw new Error(
+        "Format respons backend untuk penghapusan kompetisi belum sesuai.",
+      );
     }
 
     return payload.deletedId;
@@ -339,6 +382,8 @@ export async function deleteCompetitionFromBackend(competitionId: string): Promi
       throw error;
     }
 
-    throw new Error("Terjadi kendala saat menghapus data kompetisi di backend.");
+    throw new Error(
+      "Terjadi kendala saat menghapus data kompetisi di backend.",
+    );
   }
 }

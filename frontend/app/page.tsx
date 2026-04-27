@@ -1,7 +1,6 @@
 import { CompetitionBrowser } from "@/components/CompetitionBrowser";
 import { FilterBar } from "@/components/FilterBar";
 import { HeroSection } from "@/components/HeroSection";
-import { COMPETITIONS } from "@/lib/data/competitions";
 import type { CompetitionTab } from "@/lib/types";
 import { getCompetitionsFromBackend } from "@/lib/utils/backend";
 import {
@@ -20,8 +19,8 @@ interface HomePageProps {
 
 const TAB_ITEMS: Array<{ label: string; value: CompetitionTab }> = [
   { label: "Semua", value: "all" },
+  { label: "Coming Soon", value: "coming-soon" },
   { label: "Masih Buka", value: "open" },
-  { label: "Deadline Pendaftaran", value: "closing-soon" },
   { label: "Ada Guidebook", value: "has-guidebook" },
 ];
 
@@ -30,7 +29,7 @@ export default async function Home({ searchParams }: HomePageProps) {
   const filters = parseCompetitionFilters(resolvedSearchParams);
   const now = new Date();
   const currentYear = now.getFullYear();
-  const competitionResult = await getCompetitionsFromBackend(COMPETITIONS);
+  const competitionResult = await getCompetitionsFromBackend();
   const allCompetitions = competitionResult.competitions;
 
   const competitions = sortCompetitions(
@@ -73,12 +72,7 @@ export default async function Home({ searchParams }: HomePageProps) {
 
         {competitionResult.errorMessage ? (
           <section className="soft-panel rounded-[1.25rem] border border-amber-200/14 bg-amber-200/8 px-4 py-3 text-sm text-amber-50 sm:px-5">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <p>{competitionResult.errorMessage}</p>
-              <span className="text-xs uppercase tracking-[0.22em] text-amber-100/70">
-                Sumber data lokal
-              </span>
-            </div>
+            <p>{competitionResult.errorMessage}</p>
           </section>
         ) : null}
 

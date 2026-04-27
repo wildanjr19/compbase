@@ -44,8 +44,6 @@ export function CompetitionCard({ competition, now }: CompetitionCardProps) {
           ) : null}
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-zinc-300">{competition.description}</p>
-
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <StatusBadge status={status} />
           {competition.hasGuidebook ? (
@@ -57,14 +55,20 @@ export function CompetitionCard({ competition, now }: CompetitionCardProps) {
 
         <dl className="mt-5 grid gap-3 text-sm text-zinc-300 sm:grid-cols-2">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-zinc-400">Batas Registrasi</dt>
-            <dd className="mt-2 font-medium text-zinc-100">{formatDate(competition.regEnd)}</dd>
+            <dt className="text-xs uppercase tracking-[0.2em] text-zinc-400">
+              Batas Registrasi
+            </dt>
+            <dd className="mt-2 font-medium text-zinc-100">
+              {formatDate(competition.regEnd)}
+            </dd>
             <dd className="mt-1 text-xs text-zinc-400">
               {daysLeft >= 0 ? `${daysLeft} hari lagi` : "Sudah lewat"}
             </dd>
           </div>
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-zinc-400">Rentang Event</dt>
+            <dt className="text-xs uppercase tracking-[0.2em] text-zinc-400">
+              Rentang Event
+            </dt>
             <dd className="mt-2 font-medium text-zinc-100">
               {formatDateRange(competition.eventStart, competition.eventEnd)}
             </dd>
@@ -74,8 +78,20 @@ export function CompetitionCard({ competition, now }: CompetitionCardProps) {
         <div className="mt-5 flex items-center justify-end gap-2 text-sm text-zinc-300">
           Lihat detail
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700/70 text-zinc-400 transition group-hover:border-zinc-500 group-hover:text-zinc-200">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M3 5.25L7 9.25L11 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M3 5.25L7 9.25L11 5.25"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
         </div>

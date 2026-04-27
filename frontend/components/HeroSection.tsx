@@ -25,8 +25,8 @@ export function HeroSection({ stats }: HeroSectionProps) {
             <p className="mt-2 text-2xl font-semibold text-zinc-50">{stats.open}</p>
           </div>
           <div className="rounded-[1.1rem] border border-white/7 bg-white/[0.04] px-4 py-3 text-center">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Dekat</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-50">{stats.closingSoon}</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Coming Soon</p>
+            <p className="mt-2 text-2xl font-semibold text-zinc-50">{stats.comingSoon}</p>
           </div>
           <div className="rounded-[1.1rem] border border-white/7 bg-white/[0.04] px-4 py-3 text-center">
             <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Semua</p>

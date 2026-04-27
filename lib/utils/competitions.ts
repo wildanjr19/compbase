@@ -48,7 +48,9 @@ function toDate(dateInput: string): Date {
 }
 
 function toToday(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
 }
 
 export function parseCompetitionFilters(
@@ -66,7 +68,9 @@ export function parseCompetitionFilters(
     query,
     organizer: organizer ? organizer : DEFAULT_FILTERS.organizer,
     tab: isCompetitionTab(normalizedTab) ? normalizedTab : DEFAULT_FILTERS.tab,
-    sort: isCompetitionSort(normalizedSort) ? normalizedSort : DEFAULT_FILTERS.sort,
+    sort: isCompetitionSort(normalizedSort)
+      ? normalizedSort
+      : DEFAULT_FILTERS.sort,
   };
 }
 
@@ -119,11 +123,7 @@ export function filterCompetitions(
 
   return competitions.filter((competition) => {
     if (normalizedQuery) {
-      const matchesQuery = [
-        competition.name,
-        competition.organizer,
-        competition.description,
-      ]
+      const matchesQuery = [competition.name, competition.organizer]
         .map((text) => normalizeText(text))
         .some((text) => text.includes(normalizedQuery));
 
@@ -132,7 +132,10 @@ export function filterCompetitions(
       }
     }
 
-    if (filters.organizer !== "all" && competition.organizer !== filters.organizer) {
+    if (
+      filters.organizer !== "all" &&
+      competition.organizer !== filters.organizer
+    ) {
       return false;
     }
 
@@ -177,10 +180,16 @@ export function sortCompetitions(
         return left.isPriority ? -1 : 1;
       }
 
-      return getDaysUntilDeadline(left.regEnd, now) - getDaysUntilDeadline(right.regEnd, now);
+      return (
+        getDaysUntilDeadline(left.regEnd, now) -
+        getDaysUntilDeadline(right.regEnd, now)
+      );
     }
 
-    return getDaysUntilDeadline(left.regEnd, now) - getDaysUntilDeadline(right.regEnd, now);
+    return (
+      getDaysUntilDeadline(left.regEnd, now) -
+      getDaysUntilDeadline(right.regEnd, now)
+    );
   });
 }
 
@@ -237,16 +246,19 @@ export function getSpotlightCompetitions(
       return leftStatus === "closing-soon" ? -1 : 1;
     }
 
-    return getDaysUntilDeadline(left.regEnd, now) - getDaysUntilDeadline(right.regEnd, now);
+    return (
+      getDaysUntilDeadline(left.regEnd, now) -
+      getDaysUntilDeadline(right.regEnd, now)
+    );
   });
 
   return sorted.slice(0, limit);
 }
 
 export function getOrganizerOptions(competitions: Competition[]): string[] {
-  return Array.from(new Set(competitions.map((competition) => competition.organizer))).sort(
-    (left, right) => left.localeCompare(right, "id-ID"),
-  );
+  return Array.from(
+    new Set(competitions.map((competition) => competition.organizer)),
+  ).sort((left, right) => left.localeCompare(right, "id-ID"));
 }
 
 export function createCompetitionHref(
