@@ -37,7 +37,7 @@ export interface Competition {
   links: CompetitionLinks;
 }
 
-const optionalUrlSchema = z.union([
+export const optionalUrlSchema = z.union([
   z.literal(""),
   z
     .string()
@@ -45,7 +45,7 @@ const optionalUrlSchema = z.union([
     .url("Tautan harus menggunakan URL valid dengan protokol http atau https."),
 ]);
 
-const optionalDateSchema = z
+export const optionalDateSchema = z
   .string()
   .trim()
   .refine(
@@ -140,6 +140,37 @@ export function normalizeCompetition(
     links,
     hasGuidebook: Boolean(links.guidebook),
   };
+}
+
+export function createSlug(name: string): string {
+  const normalizedName = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  return normalizedName ? normalizedName : "kompetisi";
+}
+
+export function getNextCompetitionId(competitions: Competition[]): string {
+  const highestIndex = competitions.reduce<number>(
+    (currentHighest, competition) => {
+      const numericPart = Number.parseInt(
+        competition.id.replace("cmp-", ""),
+        10,
+      );
+
+      if (Number.isNaN(numericPart)) {
+        return currentHighest;
+      }
+
+      return Math.max(currentHighest, numericPart);
+    },
+    0,
+  );
+
+  return `cmp-${String(highestIndex + 1).padStart(3, "0")}`;
 }
 
 export function getValidationMessages(error: z.ZodError): string[] {

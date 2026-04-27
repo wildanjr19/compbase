@@ -9,6 +9,10 @@ import {
   updateCompetitionInBackend,
 } from "@/lib/utils/backend";
 import {
+  approveSubmissionInBackend,
+  rejectSubmissionInBackend,
+} from "@/lib/utils/submissions";
+import {
   clearAdminSession,
   createAdminSession,
   requireAdminSession,
@@ -28,6 +32,18 @@ export interface AdminCompetitionMutationState {
 export interface AdminCompetitionDeleteState {
   ok: boolean;
   deletedId: string | null;
+  errorMessage: string | null;
+}
+
+export interface AdminSubmissionApproveState {
+  ok: boolean;
+  competition: Competition | null;
+  errorMessage: string | null;
+}
+
+export interface AdminSubmissionRejectState {
+  ok: boolean;
+  submissionId: string | null;
   errorMessage: string | null;
 }
 
@@ -197,6 +213,72 @@ export async function deleteCompetitionAction(
     return {
       ok: false,
       deletedId: null,
+      errorMessage: getUnknownErrorMessage(error),
+    };
+  }
+}
+
+export async function approveSubmissionAction(
+  submissionId: string,
+): Promise<AdminSubmissionApproveState> {
+  await requireAdminSession();
+
+  const normalizedSubmissionId = submissionId.trim();
+
+  if (!normalizedSubmissionId) {
+    return {
+      ok: false,
+      competition: null,
+      errorMessage: "ID pengajuan wajib diisi sebelum proses persetujuan.",
+    };
+  }
+
+  try {
+    const competition = await approveSubmissionInBackend(normalizedSubmissionId);
+
+    return {
+      ok: true,
+      competition,
+      errorMessage: null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      competition: null,
+      errorMessage: getUnknownErrorMessage(error),
+    };
+  }
+}
+
+export async function rejectSubmissionAction(
+  submissionId: string,
+): Promise<AdminSubmissionRejectState> {
+  await requireAdminSession();
+
+  const normalizedSubmissionId = submissionId.trim();
+
+  if (!normalizedSubmissionId) {
+    return {
+      ok: false,
+      submissionId: null,
+      errorMessage: "ID pengajuan wajib diisi sebelum proses penolakan.",
+    };
+  }
+
+  try {
+    const rejectedSubmissionId = await rejectSubmissionInBackend(
+      normalizedSubmissionId,
+    );
+
+    return {
+      ok: true,
+      submissionId: rejectedSubmissionId,
+      errorMessage: null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      submissionId: null,
       errorMessage: getUnknownErrorMessage(error),
     };
   }
