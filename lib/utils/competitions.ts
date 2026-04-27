@@ -34,13 +34,23 @@ function normalizeText(text: string): string {
 }
 
 function isCompetitionTab(value: string): value is CompetitionTab {
-  return ["all", "open", "closing-soon", "priority", "has-guidebook"].includes(
+  return ["all", "open", "closing-soon", "priority"].includes(
     value,
   );
 }
 
 function isCompetitionSort(value: string): value is CompetitionSort {
-  return ["deadline", "name", "organizer", "priority"].includes(value);
+  return ["deadline", "name", "priority"].includes(value);
+}
+
+function getCompetitionStatusOrder(status: CompetitionStatus): number {
+  const statusOrder: Record<CompetitionStatus, number> = {
+    open: 0,
+    "closing-soon": 1,
+    closed: 2,
+  };
+
+  return statusOrder[status];
 }
 
 function toDate(dateInput: string): Date {
@@ -153,10 +163,6 @@ export function filterCompetitions(
       return false;
     }
 
-    if (filters.tab === "has-guidebook" && !competition.hasGuidebook) {
-      return false;
-    }
-
     return true;
   });
 }
@@ -167,12 +173,15 @@ export function sortCompetitions(
   now: Date,
 ): Competition[] {
   return [...competitions].sort((left, right) => {
-    if (sort === "name") {
-      return left.name.localeCompare(right.name, "id-ID");
+    const leftStatus = getCompetitionStatus(left, now);
+    const rightStatus = getCompetitionStatus(right, now);
+
+    if (leftStatus !== rightStatus) {
+      return getCompetitionStatusOrder(leftStatus) - getCompetitionStatusOrder(rightStatus);
     }
 
-    if (sort === "organizer") {
-      return left.organizer.localeCompare(right.organizer, "id-ID");
+    if (sort === "name") {
+      return left.name.localeCompare(right.name, "id-ID");
     }
 
     if (sort === "priority") {
@@ -181,14 +190,14 @@ export function sortCompetitions(
       }
 
       return (
-        getDaysUntilDeadline(left.regEnd, now) -
-        getDaysUntilDeadline(right.regEnd, now)
+        getDaysUntilDeadline(right.regEnd, now) -
+        getDaysUntilDeadline(left.regEnd, now)
       );
     }
 
     return (
-      getDaysUntilDeadline(left.regEnd, now) -
-      getDaysUntilDeadline(right.regEnd, now)
+      getDaysUntilDeadline(right.regEnd, now) -
+      getDaysUntilDeadline(left.regEnd, now)
     );
   });
 }

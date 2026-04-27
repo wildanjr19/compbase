@@ -10,6 +10,7 @@ const COMPETITION_CATEGORIES = [
   "Hackathon",
   "Infografis",
   "LKTI",
+  "Olympiad",
 ] as const satisfies readonly CompetitionCategory[];
 
 const optionalUrlSchema = z.union([
@@ -75,7 +76,7 @@ export const competitionSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          "Tanggal mulai pelaksanaan tidak boleh melewati tanggal selesai pelaksanaan.",
+          "Tanggal mulai penyisihan tidak boleh melewati tanggal selesai penyisihan.",
         path: ["eventStart"],
       });
     }
@@ -87,7 +88,7 @@ export const competitionSchema = z
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Deadline pendaftaran tidak boleh melewati akhir pelaksanaan.",
+        message: "Deadline pendaftaran tidak boleh melewati akhir penyisihan.",
         path: ["regEnd"],
       });
     }

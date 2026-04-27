@@ -46,11 +46,6 @@ export function CompetitionCard({ competition, now }: CompetitionCardProps) {
 
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <StatusBadge status={status} />
-          {competition.hasGuidebook ? (
-            <span className="inline-flex items-center rounded-full border border-zinc-600 bg-zinc-800/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-100">
-              Guidebook Tersedia
-            </span>
-          ) : null}
         </div>
 
         <dl className="mt-5 grid gap-3 text-sm text-zinc-300 sm:grid-cols-2">

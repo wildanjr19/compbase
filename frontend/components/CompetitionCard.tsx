@@ -32,20 +32,15 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
       <div className="p-3.5 md:p-4 lg:p-[1.05rem]">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={status} />
-          {competition.hasGuidebook ? (
-            <span className="rounded-full border border-accent-emerald/24 bg-accent-emerald/8 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-accent-emerald">
-              Ada guidebook
-            </span>
-          ) : null}
         </div>
 
         <div className="mt-2">
-          <p className="text-sm text-zinc-400">
+          <p className="text-[13px] text-zinc-400">
             {competition.category} | {competition.organizer}
           </p>
           <h3
             className={`mt-1 leading-tight text-zinc-50 ${
-              isLeadCard ? "font-brand text-[clamp(1.7rem,4vw,2.8rem)]" : "text-[1.32rem] font-semibold"
+              isLeadCard ? "font-brand text-[clamp(1.5rem,3.4vw,2.35rem)]" : "text-[1.15rem] font-semibold"
             }`}
           >
             {competition.name}
@@ -60,7 +55,7 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
       >
         <div className="rounded-[0.9rem] bg-black/12 p-2.5 ring-1 ring-white/6">
           <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Deadline pendaftaran</p>
-          <p className="mt-1 font-medium text-zinc-100">{formatDate(competition.regEnd)}</p>
+          <p className="mt-1 text-sm font-medium text-zinc-100">{formatDate(competition.regEnd)}</p>
           <p className="mt-1 text-[11px] text-zinc-400">
             {daysLeft === null ? "Belum ditentukan" : daysLeft >= 0 ? `${daysLeft} hari lagi` : "Sudah lewat"}
           </p>
@@ -68,7 +63,7 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
 
         <div className="rounded-[0.9rem] bg-black/12 p-2.5 ring-1 ring-white/6">
           <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Penyisihan</p>
-          <p className="mt-1 text-sm font-medium leading-relaxed text-zinc-100">
+          <p className="mt-1 text-[13px] font-medium leading-relaxed text-zinc-100">
             {formatDateRange(competition.eventStart, competition.eventEnd)}
           </p>
         </div>
@@ -77,7 +72,7 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
           <span className="text-xs uppercase tracking-[0.28em] text-zinc-600">
             {String(index + 1).padStart(2, "0")}
           </span>
-          <span className="inline-flex items-center gap-2 text-[13px] text-zinc-300">
+          <span className="inline-flex items-center gap-2 text-xs text-zinc-300">
             Lihat detail
             <span className="inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-zinc-700/70 text-zinc-400 transition group-hover:border-zinc-500 group-hover:text-zinc-200">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">

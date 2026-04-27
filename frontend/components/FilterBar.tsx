@@ -26,7 +26,7 @@ interface FilterBarProps {
 const SEARCH_DEBOUNCE_DELAY_MS = 360;
 
 function toCompetitionSort(value: FormDataEntryValue | null): CompetitionSort {
-  if (value === "name" || value === "organizer") {
+  if (value === "name") {
     return value;
   }
 
@@ -34,7 +34,7 @@ function toCompetitionSort(value: FormDataEntryValue | null): CompetitionSort {
 }
 
 function toCompetitionTab(value: FormDataEntryValue | null): CompetitionTab {
-  if (value === "open" || value === "coming-soon" || value === "has-guidebook") {
+  if (value === "open" || value === "coming-soon") {
     return value;
   }
 
@@ -124,7 +124,7 @@ export function FilterBar({
             <Link
               key={tab.label}
               href={tab.href}
-              className={`inline-flex min-h-10 items-center rounded-full border px-4 py-2 text-sm ${
+              className={`inline-flex min-h-10 items-center rounded-full border px-4 py-2 text-[13px] font-medium ${
                 tab.isActive
                   ? "border-violet-300/26 bg-violet-300/10 text-violet-100"
                   : "border-white/7 bg-white/[0.025] text-zinc-300 hover:border-white/14 hover:text-zinc-100"
@@ -135,7 +135,7 @@ export function FilterBar({
           ))}
         </div>
 
-        <div className="min-h-5 text-xs text-zinc-400">
+        <div className="min-h-5 text-[11px] text-zinc-400">
           {isPending ? (
             <span className="inline-flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-violet-200/80 animate-pulse" />
@@ -152,7 +152,7 @@ export function FilterBar({
         <input type="hidden" name="tab" value={activeTab} />
 
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-zinc-300">Cari lomba</span>
+          <span className="text-[13px] font-medium text-zinc-300">Cari lomba</span>
           <span className="text-xs text-zinc-500">Bisa pakai nama lomba atau topik</span>
           <input
             type="text"
@@ -165,7 +165,7 @@ export function FilterBar({
         </label>
 
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-zinc-300">Kategori lomba</span>
+          <span className="text-[13px] font-medium text-zinc-300">Kategori lomba</span>
           <span className="text-xs text-zinc-500">Pilih tipe lomba yang kamu cari</span>
           <div className="relative">
             <select
@@ -190,7 +190,7 @@ export function FilterBar({
         </label>
 
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium text-zinc-300">Urutkan</span>
+          <span className="text-[13px] font-medium text-zinc-300">Urutkan</span>
           <span className="text-xs text-zinc-500">Biar hasilnya enak dibaca</span>
           <div className="relative">
             <select
@@ -201,7 +201,6 @@ export function FilterBar({
             >
               <option value="deadline">Deadline pendaftaran</option>
               <option value="name">Nama A-Z</option>
-              <option value="organizer">Penyelenggara A-Z</option>
             </select>
             <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-400">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

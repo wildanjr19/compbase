@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -25,7 +26,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install dependency
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build backend
@@ -43,13 +44,31 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          DEPLOY_BRANCH="${{ secrets.DEPLOY_BRANCH }}"
+          if [ -z "$DEPLOY_BRANCH" ]; then DEPLOY_BRANCH="main"; fi
+
+          ssh -o StrictHostKeyChecking=yes \
+              -p ${{ secrets.VPS_PORT }} \
+              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << EOF
             set -e
+
             cd ${{ secrets.VPS_APP_DIR }}
-            git pull origin main
+
+            git fetch origin
+            git checkout -B "$DEPLOY_BRANCH" "origin/$DEPLOY_BRANCH"
+
             pnpm install --frozen-lockfile
+
             pnpm --filter backend build
             pnpm --filter frontend build
+
             sudo systemctl restart compbase-backend
             sudo systemctl restart compbase-frontend
+
+            sleep 5
+
+            sudo systemctl is-active compbase-backend
+            sudo systemctl is-active compbase-frontend
+
+            curl -f http://127.0.0.1:4000/health
           EOF

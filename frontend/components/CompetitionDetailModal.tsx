@@ -85,18 +85,13 @@ export function CompetitionDetailModal({
           <div className="space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={status} />
-              {competition.hasGuidebook ? (
-                <span className="rounded-full border border-accent-emerald/24 bg-accent-emerald/8 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent-emerald">
-                  Ada guidebook
-                </span>
-              ) : null}
             </div>
 
             <div>
-              <p className="text-sm text-zinc-400">
+              <p className="text-[13px] text-zinc-400">
                 {competition.category} | {competition.organizer}
               </p>
-              <h3 className="mt-1.5 font-brand text-[clamp(1.8rem,4vw,2.8rem)] leading-[1.02] text-zinc-50">
+              <h3 className="mt-1.5 font-brand text-[clamp(1.55rem,3.4vw,2.35rem)] leading-[1.04] text-zinc-50">
                 {competition.name}
               </h3>
             </div>
@@ -116,9 +111,9 @@ export function CompetitionDetailModal({
 
         <div className="grid gap-4 px-5 pb-5 pt-0 md:px-6 md:pb-6">
           <dl className="grid gap-2.5 sm:grid-cols-2">
-            <div className="rounded-[1rem] bg-black/12 p-3.5 text-sm text-zinc-300 ring-1 ring-white/6">
+            <div className="rounded-[1rem] bg-black/12 p-3.5 text-[13px] text-zinc-300 ring-1 ring-white/6">
               <dt className="text-xs uppercase tracking-[0.22em] text-zinc-500">Deadline pendaftaran</dt>
-              <dd className="mt-1.5 font-medium text-zinc-100">{formatDate(competition.regEnd)}</dd>
+              <dd className="mt-1.5 text-sm font-medium text-zinc-100">{formatDate(competition.regEnd)}</dd>
               <dd className="mt-1 text-xs text-zinc-400">
                 {daysLeft === null
                   ? "Tanggal belum ditentukan"
@@ -127,7 +122,7 @@ export function CompetitionDetailModal({
                     : "Pendaftaran sudah tutup"}
               </dd>
             </div>
-            <div className="rounded-[1rem] bg-black/12 p-3.5 text-sm text-zinc-300 ring-1 ring-white/6">
+            <div className="rounded-[1rem] bg-black/12 p-3.5 text-[13px] text-zinc-300 ring-1 ring-white/6">
               <dt className="text-xs uppercase tracking-[0.22em] text-zinc-500">Penyisihan</dt>
               <dd className="mt-1.5 font-medium leading-relaxed text-zinc-100">
                 {formatDateRange(competition.eventStart, competition.eventEnd)}

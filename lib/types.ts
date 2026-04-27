@@ -26,10 +26,9 @@ export type CompetitionTab =
   | "all"
   | "open"
   | "closing-soon"
-  | "priority"
-  | "has-guidebook";
+  | "priority";
 
-export type CompetitionSort = "deadline" | "name" | "organizer" | "priority";
+export type CompetitionSort = "deadline" | "name" | "priority";
 
 export interface CompetitionFilters {
   query: string;

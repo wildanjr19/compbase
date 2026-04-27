@@ -123,11 +123,6 @@ export function CompetitionDetailModal({
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={status} />
-              {competition.hasGuidebook ? (
-                <span className="rounded-full border border-emerald-300/24 bg-emerald-300/8 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200">
-                  Ada guidebook
-                </span>
-              ) : null}
               {competition.isPriority ? (
                 <span className="rounded-full border border-violet-200/24 bg-violet-200/8 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-100">
                   Prioritas

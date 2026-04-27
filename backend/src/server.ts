@@ -3,65 +3,39 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import { z } from "zod";
-
-const COMPETITION_CATEGORIES = [
-  "Dashboard",
-  "Data Mining",
-  "Data Science",
-  "Datathon",
-  "Essay",
-  "Hackathon",
-  "Infografis",
-  "LKTI",
-] as const;
-
-type CompetitionCategory = (typeof COMPETITION_CATEGORIES)[number];
-
-interface CompetitionLinks {
-  registration?: string;
-  guidebook?: string;
-  instagram?: string;
-  linktree?: string;
-  website?: string;
-}
-
-interface Competition {
-  id: string;
-  name: string;
-  slug: string;
-  organizer: string;
-  category: CompetitionCategory;
-  regStart: string;
-  regEnd: string;
-  eventStart: string;
-  eventEnd: string;
-  isPriority: boolean;
-  hasGuidebook: boolean;
-
-  links: CompetitionLinks;
-}
+import { ZodError } from "zod";
+import {
+  competitionSchema,
+  getValidationMessages,
+  normalizeCompetition,
+  type Competition,
+} from "./competition.js";
+import { createCompetitionStore } from "./dataStore.js";
 
 interface CompetitionsResponse {
   ok: true;
   data: Competition[];
   total: number;
+  source: "supabase" | "local";
 }
 
 interface CompetitionResponse {
   ok: true;
   data: Competition;
+  source: "supabase" | "local";
 }
 
 interface DeleteCompetitionResponse {
   ok: true;
   deletedId: string;
+  source: "supabase" | "local";
 }
 
 interface HealthResponse {
   ok: true;
   service: string;
   timestamp: string;
+  dataSource: "supabase" | "local";
 }
 
 interface ErrorResponse {
@@ -70,99 +44,12 @@ interface ErrorResponse {
   details?: string[];
 }
 
-const optionalUrlSchema = z.union([
-  z.literal(""),
-  z
-    .string()
-    .trim()
-    .url("Tautan harus menggunakan URL valid dengan protokol http atau https."),
-]);
-
-const competitionLinksSchema = z.object({
-  registration: optionalUrlSchema.optional().default(""),
-  guidebook: optionalUrlSchema.optional().default(""),
-  instagram: optionalUrlSchema.optional().default(""),
-  linktree: optionalUrlSchema.optional().default(""),
-  website: optionalUrlSchema.optional().default(""),
-});
-
-function isDateString(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-const competitionSchema = z
-  .object({
-    id: z.string().trim().min(1, "ID kompetisi wajib diisi."),
-    name: z.string().trim().min(1, "Nama kompetisi wajib diisi."),
-    slug: z.string().trim().min(1, "Slug kompetisi wajib diisi."),
-    organizer: z.string().trim().min(1, "Nama penyelenggara wajib diisi."),
-    category: z.enum(COMPETITION_CATEGORIES),
-    regStart: z
-      .string()
-      .trim()
-      .refine(isDateString, "Format tanggal buka registrasi harus YYYY-MM-DD."),
-    regEnd: z
-      .string()
-      .trim()
-      .refine(
-        isDateString,
-        "Format tanggal tutup registrasi harus YYYY-MM-DD.",
-      ),
-    eventStart: z
-      .string()
-      .trim()
-      .refine(
-        isDateString,
-        "Format tanggal mulai pelaksanaan harus YYYY-MM-DD.",
-      ),
-    eventEnd: z
-      .string()
-      .trim()
-      .refine(
-        isDateString,
-        "Format tanggal selesai pelaksanaan harus YYYY-MM-DD.",
-      ),
-    isPriority: z.boolean(),
-    hasGuidebook: z.boolean(),
-
-    links: competitionLinksSchema,
-  })
-  .superRefine((competition, context) => {
-    if (competition.regStart > competition.regEnd) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Tanggal buka registrasi tidak boleh melewati tanggal tutup registrasi.",
-        path: ["regStart"],
-      });
-    }
-
-    if (competition.eventStart > competition.eventEnd) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Tanggal mulai pelaksanaan tidak boleh melewati tanggal selesai pelaksanaan.",
-        path: ["eventStart"],
-      });
-    }
-
-    if (competition.regEnd > competition.eventEnd) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Deadline pendaftaran tidak boleh melewati akhir pelaksanaan.",
-        path: ["regEnd"],
-      });
-    }
-  });
-
-const COMPETITIONS: Competition[] = [];
-
 const port = process.env.BACKEND_PORT || 4000;
 const ADMIN_TOKEN_HEADER = "x-compbase-admin-token";
+const competitionStore = createCompetitionStore();
 
 function getBackendAdminToken(): string | null {
   const configuredToken = process.env.BACKEND_ADMIN_TOKEN?.trim();
-
   return configuredToken ? configuredToken : null;
 }
 
@@ -195,11 +82,6 @@ function isAuthorizedForWrite(req: IncomingMessage): boolean {
   }
 
   const providedToken = getHeaderValue(req.headers, ADMIN_TOKEN_HEADER);
-
-  if (!providedToken) {
-    return false;
-  }
-
   return providedToken === configuredToken;
 }
 
@@ -224,29 +106,6 @@ function setCorsHeaders(res: ServerResponse): void {
     "Access-Control-Allow-Headers",
     "Content-Type,x-compbase-admin-token",
   );
-}
-
-function normalizeCompetition(
-  input: z.infer<typeof competitionSchema>,
-): Competition {
-  const links: CompetitionLinks = {
-    registration: input.links.registration.trim(),
-    guidebook: input.links.guidebook.trim(),
-    instagram: input.links.instagram.trim(),
-    linktree: input.links.linktree.trim(),
-    website: input.links.website.trim(),
-  };
-
-  return {
-    ...input,
-    id: input.id.trim(),
-    name: input.name.trim(),
-    slug: input.slug.trim(),
-    organizer: input.organizer.trim(),
-
-    links,
-    hasGuidebook: Boolean(links.guidebook),
-  };
 }
 
 async function readRequestBody(req: IncomingMessage): Promise<unknown> {
@@ -283,16 +142,6 @@ async function readRequestBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-function getValidationMessages(error: z.ZodError): string[] {
-  return error.issues.map((issue) => issue.message);
-}
-
-function findCompetitionIndex(competitionId: string): number {
-  return COMPETITIONS.findIndex(
-    (competition) => competition.id === competitionId,
-  );
-}
-
 function getCompetitionIdFromPath(pathname: string): string | null {
   const match = pathname.match(/^\/competitions\/([^/]+)$/);
 
@@ -324,21 +173,15 @@ async function handleCreateCompetition(
       return;
     }
 
-    const normalizedCompetition = normalizeCompetition(parsedPayload.data);
-    const existingCompetitionIndex = findCompetitionIndex(
-      normalizedCompetition.id,
+    const createdCompetition = await competitionStore.createCompetition(
+      normalizeCompetition(parsedPayload.data),
     );
 
-    if (existingCompetitionIndex !== -1) {
-      sendJson(res, 409, {
-        ok: false,
-        error: `Kompetisi dengan ID ${normalizedCompetition.id} sudah ada.`,
-      });
-      return;
-    }
-
-    COMPETITIONS.unshift(normalizedCompetition);
-    sendJson(res, 201, { ok: true, data: normalizedCompetition });
+    sendJson(res, 201, {
+      ok: true,
+      data: createdCompetition,
+      source: competitionStore.source,
+    });
   } catch (error) {
     const message =
       error instanceof Error
@@ -357,16 +200,6 @@ async function handleUpdateCompetition(
   res: ServerResponse,
   competitionId: string,
 ): Promise<void> {
-  const existingCompetitionIndex = findCompetitionIndex(competitionId);
-
-  if (existingCompetitionIndex === -1) {
-    sendJson(res, 404, {
-      ok: false,
-      error: `Kompetisi dengan ID ${competitionId} tidak ditemukan.`,
-    });
-    return;
-  }
-
   try {
     const rawPayload = await readRequestBody(req);
     const parsedPayload = competitionSchema.safeParse(rawPayload);
@@ -390,8 +223,16 @@ async function handleUpdateCompetition(
       return;
     }
 
-    COMPETITIONS[existingCompetitionIndex] = normalizedCompetition;
-    sendJson(res, 200, { ok: true, data: normalizedCompetition });
+    const updatedCompetition = await competitionStore.updateCompetition(
+      competitionId,
+      normalizedCompetition,
+    );
+
+    sendJson(res, 200, {
+      ok: true,
+      data: updatedCompetition,
+      source: competitionStore.source,
+    });
   } catch (error) {
     const message =
       error instanceof Error
@@ -405,25 +246,29 @@ async function handleUpdateCompetition(
   }
 }
 
-function handleDeleteCompetition(
+async function handleDeleteCompetition(
   res: ServerResponse,
   competitionId: string,
-): void {
-  const existingCompetitionIndex = findCompetitionIndex(competitionId);
+): Promise<void> {
+  try {
+    const deletedId = await competitionStore.deleteCompetition(competitionId);
 
-  if (existingCompetitionIndex === -1) {
+    sendJson(res, 200, {
+      ok: true,
+      deletedId,
+      source: competitionStore.source,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal menghapus data kompetisi.";
+
     sendJson(res, 404, {
       ok: false,
-      error: `Kompetisi dengan ID ${competitionId} tidak ditemukan.`,
+      error: message,
     });
-    return;
   }
-
-  COMPETITIONS.splice(existingCompetitionIndex, 1);
-  sendJson(res, 200, {
-    ok: true,
-    deletedId: competitionId,
-  });
 }
 
 async function handleRequest(
@@ -454,15 +299,18 @@ async function handleRequest(
       ok: true,
       service: "backend",
       timestamp: new Date().toISOString(),
+      dataSource: competitionStore.source,
     });
     return;
   }
 
   if (pathname === "/competitions" && req.method === "GET") {
+    const competitions = await competitionStore.listCompetitions();
     sendJson(res, 200, {
       ok: true,
-      data: COMPETITIONS,
-      total: COMPETITIONS.length,
+      data: competitions,
+      total: competitions.length,
+      source: competitionStore.source,
     });
     return;
   }
@@ -480,7 +328,7 @@ async function handleRequest(
   }
 
   if (competitionId && req.method === "DELETE") {
-    handleDeleteCompetition(res, competitionId);
+    await handleDeleteCompetition(res, competitionId);
     return;
   }
 
@@ -492,6 +340,15 @@ async function handleRequest(
 
 const server = createServer((req, res) => {
   void handleRequest(req, res).catch((error: unknown) => {
+    if (error instanceof ZodError) {
+      sendJson(res, 422, {
+        ok: false,
+        error: "Validasi data kompetisi gagal.",
+        details: getValidationMessages(error),
+      });
+      return;
+    }
+
     const message =
       error instanceof Error
         ? error.message
@@ -505,5 +362,7 @@ const server = createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`Backend berjalan di http://localhost:${port}`);
+  console.log(
+    `Backend berjalan di http://localhost:${port} dengan sumber data ${competitionStore.source}.`,
+  );
 });

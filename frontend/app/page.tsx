@@ -21,7 +21,6 @@ const TAB_ITEMS: Array<{ label: string; value: CompetitionTab }> = [
   { label: "Semua", value: "all" },
   { label: "Coming Soon", value: "coming-soon" },
   { label: "Masih Buka", value: "open" },
-  { label: "Ada Guidebook", value: "has-guidebook" },
 ];
 
 export default async function Home({ searchParams }: HomePageProps) {

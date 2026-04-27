@@ -79,7 +79,6 @@ export function FilterBar({
             <option value="deadline">Deadline Terdekat</option>
             <option value="priority">Prioritas Dulu</option>
             <option value="name">Nama A-Z</option>
-            <option value="organizer">Penyelenggara A-Z</option>
           </select>
         </label>
 

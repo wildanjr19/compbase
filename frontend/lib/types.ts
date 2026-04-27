@@ -30,12 +30,13 @@ export type CompetitionCategory =
   | "Essay"
   | "Hackathon"
   | "LKTI"
+  | "Olympiad"
   | "Infografis"
   | "Dashboard";
 
-export type CompetitionTab = "all" | "coming-soon" | "open" | "has-guidebook";
+export type CompetitionTab = "all" | "coming-soon" | "open";
 
-export type CompetitionSort = "deadline" | "name" | "organizer";
+export type CompetitionSort = "deadline" | "name";
 
 export interface CompetitionFilters {
   query: string;

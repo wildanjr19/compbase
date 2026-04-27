@@ -13,5 +13,9 @@
     "start:frontend": "pnpm --filter frontend start",
     "start:backend": "pnpm --filter backend start",
     "lint": "pnpm --filter frontend lint"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.104.1"
   }
 }

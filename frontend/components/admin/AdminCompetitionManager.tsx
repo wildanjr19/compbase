@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useRef, useState, useTransition } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   createCompetitionAction,
   deleteCompetitionAction,
@@ -50,6 +56,7 @@ const CATEGORY_OPTIONS: CompetitionCategory[] = [
   "Hackathon",
   "Infografis",
   "LKTI",
+  "Olympiad",
 ];
 
 function getStatusLabel(status: CompetitionStatus): string {
@@ -137,10 +144,6 @@ function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function hasGuidebookLink(competition: Competition): boolean {
-  return Boolean(competition.links.guidebook?.trim());
-}
-
 function countActiveLinks(competition: Competition): number {
   return Object.values(competition.links).filter((value) =>
     Boolean(value?.trim()),
@@ -190,7 +193,49 @@ export function AdminCompetitionManager({
   const regEndInputRef = useRef<HTMLInputElement>(null);
   const eventStartInputRef = useRef<HTMLInputElement>(null);
   const eventEndInputRef = useRef<HTMLInputElement>(null);
+  const editorPanelRef = useRef<HTMLElement>(null);
+  const [syncedListMaxHeight, setSyncedListMaxHeight] = useState<number | null>(
+    null,
+  );
   const now = new Date();
+
+  useEffect(() => {
+    const editorPanelElement = editorPanelRef.current;
+
+    if (!editorPanelElement || typeof window === "undefined") {
+      return;
+    }
+
+    const desktopMediaQuery = window.matchMedia("(min-width: 1280px)");
+
+    // Sinkronkan tinggi daftar dengan panel editor agar daftar tetap scrollable.
+    const syncListHeight = (): void => {
+      if (!desktopMediaQuery.matches) {
+        setSyncedListMaxHeight(null);
+        return;
+      }
+
+      setSyncedListMaxHeight(
+        Math.ceil(editorPanelElement.getBoundingClientRect().height),
+      );
+    };
+
+    syncListHeight();
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncListHeight();
+    });
+
+    resizeObserver.observe(editorPanelElement);
+    window.addEventListener("resize", syncListHeight);
+    desktopMediaQuery.addEventListener("change", syncListHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", syncListHeight);
+      desktopMediaQuery.removeEventListener("change", syncListHeight);
+    };
+  }, []);
 
   const openDatePicker = (inputElement: HTMLInputElement | null): void => {
     if (!inputElement) {
@@ -530,7 +575,7 @@ export function AdminCompetitionManager({
                 Panel admin
               </span>
               <div>
-                <h1 className="font-brand text-[clamp(2.1rem,5vw,4rem)] leading-[0.98] text-zinc-50">
+                <h1 className="font-brand text-[clamp(1.9rem,4.2vw,3.3rem)] leading-[1] text-zinc-50">
                   Kelola kompetisi dengan meja kerja yang lebih rapi.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-300 sm:text-base">
@@ -567,7 +612,7 @@ export function AdminCompetitionManager({
             <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
               Total data
             </p>
-            <p className="mt-2 text-3xl font-semibold text-zinc-50">
+            <p className="mt-2 text-[1.8rem] font-semibold text-zinc-50 sm:text-[2rem]">
               {competitions.length}
             </p>
           </div>
@@ -575,7 +620,7 @@ export function AdminCompetitionManager({
             <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-100/75">
               Masih buka
             </p>
-            <p className="mt-2 text-3xl font-semibold text-emerald-50">
+            <p className="mt-2 text-[1.8rem] font-semibold text-emerald-50 sm:text-[2rem]">
               {openCompetitions}
             </p>
           </div>
@@ -583,7 +628,7 @@ export function AdminCompetitionManager({
             <p className="text-[11px] uppercase tracking-[0.22em] text-sky-100/75">
               Coming Soon
             </p>
-            <p className="mt-2 text-3xl font-semibold text-sky-50">
+            <p className="mt-2 text-[1.8rem] font-semibold text-sky-50 sm:text-[2rem]">
               {comingSoonCompetitions}
             </p>
           </div>
@@ -591,7 +636,7 @@ export function AdminCompetitionManager({
             <p className="text-[11px] uppercase tracking-[0.22em] text-rose-100/75">
               Sudah tutup
             </p>
-            <p className="mt-2 text-3xl font-semibold text-rose-50">
+            <p className="mt-2 text-[1.8rem] font-semibold text-rose-50 sm:text-[2rem]">
               {closedCompetitions}
             </p>
           </div>
@@ -604,14 +649,21 @@ export function AdminCompetitionManager({
         ) : null}
 
         <section className="grid gap-6 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.35fr)] xl:items-start">
-          <aside className="flex max-h-[50vh] min-h-0 flex-col rounded-[1.55rem] border border-white/10 bg-[oklch(0.16_0.02_250_/_0.88)] p-5 backdrop-blur-2xl sm:p-6 xl:max-h-[640px]">
+          <aside
+            style={
+              syncedListMaxHeight
+                ? { maxHeight: `${syncedListMaxHeight}px` }
+                : undefined
+            }
+            className="flex max-h-[50vh] min-h-0 flex-col rounded-[1.55rem] border border-white/10 bg-[oklch(0.16_0.02_250_/_0.88)] p-5 backdrop-blur-2xl sm:p-6"
+          >
             <div className="flex flex-col gap-4 border-b border-white/8 pb-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                     Daftar kompetisi
                   </p>
-                  <h2 className="mt-2 font-brand text-3xl text-zinc-50">
+                  <h2 className="mt-2 font-brand text-[1.75rem] leading-tight text-zinc-50 sm:text-[1.95rem]">
                     Pilih data yang ingin diperbarui
                   </h2>
                 </div>
@@ -665,10 +717,10 @@ export function AdminCompetitionManager({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-zinc-100">
+                          <p className="text-[13px] font-medium text-zinc-100 sm:text-sm">
                             {competition.name}
                           </p>
-                          <p className="mt-1 text-xs text-zinc-500">
+                          <p className="mt-1 text-[11px] text-zinc-500">
                             {competition.organizer}
                           </p>
                         </div>
@@ -694,11 +746,7 @@ export function AdminCompetitionManager({
                           <span className="rounded-full border border-rose-300/18 bg-rose-300/10 px-2.5 py-1 text-[11px] text-rose-100">
                             {validationErrors.length} catatan
                           </span>
-                        ) : (
-                          <span className="rounded-full border border-emerald-300/18 bg-emerald-300/10 px-2.5 py-1 text-[11px] text-emerald-100">
-                            Data rapi
-                          </span>
-                        )}
+                        ) : null}
                       </div>
                     </button>
                   );
@@ -713,7 +761,10 @@ export function AdminCompetitionManager({
             </div>
           </aside>
 
-          <section className="rounded-[1.55rem] border border-white/10 bg-[oklch(0.16_0.02_250_/_0.88)] p-5 backdrop-blur-2xl sm:p-6">
+          <section
+            ref={editorPanelRef}
+            className="rounded-[1.55rem] border border-white/10 bg-[oklch(0.16_0.02_250_/_0.88)] p-5 backdrop-blur-2xl sm:p-6"
+          >
             {selectedCompetition ? (
               <div className="space-y-6">
                 <div className="flex flex-col gap-5 border-b border-white/8 pb-5">
@@ -722,10 +773,10 @@ export function AdminCompetitionManager({
                       <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                         Editor kompetisi
                       </p>
-                      <h2 className="mt-2 font-brand text-3xl text-zinc-50">
+                      <h2 className="mt-2 font-brand text-[1.75rem] leading-tight text-zinc-50 sm:text-[2rem]">
                         {selectedCompetition.name}
                       </h2>
-                      <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+                      <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-zinc-400 sm:text-sm">
                         Perubahan tetap bisa ditinjau sebagai draft di editor,
                         lalu dikirim ke backend lewat tombol simpan agar katalog
                         publik dan panel admin selalu sinkron.
@@ -819,12 +870,7 @@ export function AdminCompetitionManager({
                       ))}
                     </ul>
                   </section>
-                ) : (
-                  <section className="rounded-[1.25rem] border border-emerald-300/16 bg-emerald-300/10 p-4 text-sm text-emerald-50">
-                    Data inti untuk kompetisi ini sudah rapi di level editor
-                    lokal.
-                  </section>
-                )}
+                ) : null}
 
                 <div className="grid gap-6">
                   <section className="grid gap-4 lg:grid-cols-2">
@@ -924,7 +970,7 @@ export function AdminCompetitionManager({
                           onChange={(event) =>
                             handleFieldChange("regStart", event.target.value)
                           }
-                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
+                          className="h-11 w-full appearance-none rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0"
                         />
                         <button
                           type="button"
@@ -984,7 +1030,7 @@ export function AdminCompetitionManager({
                           onChange={(event) =>
                             handleFieldChange("regEnd", event.target.value)
                           }
-                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
+                          className="h-11 w-full appearance-none rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0"
                         />
                         <button
                           type="button"
@@ -1032,7 +1078,7 @@ export function AdminCompetitionManager({
 
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-zinc-200">
-                        Mulai pelaksanaan
+                        Mulai penyisihan
                       </span>
                       <div className="relative">
                         <input
@@ -1042,14 +1088,14 @@ export function AdminCompetitionManager({
                           onChange={(event) =>
                             handleFieldChange("eventStart", event.target.value)
                           }
-                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
+                          className="h-11 w-full appearance-none rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0"
                         />
                         <button
                           type="button"
                           onClick={() =>
                             openDatePicker(eventStartInputRef.current)
                           }
-                          aria-label="Buka kalender tanggal mulai pelaksanaan"
+                          aria-label="Buka kalender tanggal mulai penyisihan"
                           className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
                         >
                           <svg
@@ -1092,7 +1138,7 @@ export function AdminCompetitionManager({
 
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-zinc-200">
-                        Selesai pelaksanaan
+                        Selesai penyisihan
                       </span>
                       <div className="relative">
                         <input
@@ -1102,14 +1148,14 @@ export function AdminCompetitionManager({
                           onChange={(event) =>
                             handleFieldChange("eventEnd", event.target.value)
                           }
-                          className="h-11 w-full rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring"
+                          className="h-11 w-full appearance-none rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0"
                         />
                         <button
                           type="button"
                           onClick={() =>
                             openDatePicker(eventEndInputRef.current)
                           }
-                          aria-label="Buka kalender tanggal selesai pelaksanaan"
+                          aria-label="Buka kalender tanggal selesai penyisihan"
                           className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
                         >
                           <svg
@@ -1161,18 +1207,7 @@ export function AdminCompetitionManager({
                           Perbarui link penting
                         </h3>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span
-                          className={`inline-flex h-10 items-center justify-center rounded-full border px-4 text-xs font-semibold uppercase tracking-wide ${
-                            hasGuidebookLink(selectedCompetition)
-                              ? "border-emerald-300/22 bg-emerald-300/10 text-emerald-100"
-                              : "border-white/10 bg-white/[0.03] text-zinc-300"
-                          }`}
-                        >
-                          {hasGuidebookLink(selectedCompetition)
-                            ? "Guidebook aktif"
-                            : "Guidebook nonaktif"}
-                        </span>
+                    <div className="flex flex-wrap gap-2">
                         <span className="inline-flex h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 text-xs font-semibold uppercase tracking-wide text-zinc-300">
                           {countActiveLinks(selectedCompetition)} link aktif
                         </span>
@@ -1276,7 +1311,7 @@ export function AdminCompetitionManager({
                     </div>
                     <div className="rounded-[1rem] border border-white/8 bg-black/10 px-4 py-3">
                       <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-                        Pelaksanaan
+                        Penyisihan
                       </p>
                       <p className="mt-2 text-sm font-medium text-zinc-100">
                         {formatDateRange(
