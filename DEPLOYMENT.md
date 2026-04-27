@@ -16,7 +16,7 @@ Panduan ini mengikuti kondisi repo saat ini:
 4. Siapkan VPS dan `.env` production.
 5. Jalankan backend dan frontend sebagai service.
 6. Jika ada data lokal lama, migrasikan ke Supabase.
-7. Aktifkan GitHub Actions deploy.
+7. Deploy artefak build dari GitHub Actions ke VPS.
 
 ## 2. Migration Schema via Supabase CLI
 
@@ -92,7 +92,7 @@ Install dependency dasar:
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl git nginx
+sudo apt install -y curl git nginx rsync
 ```
 
 Install Node.js 22 dan pnpm:
@@ -104,17 +104,18 @@ sudo corepack enable
 corepack prepare pnpm@10.32.1 --activate
 ```
 
-Clone repo:
+Siapkan direktori aplikasi:
 
 ```bash
 sudo mkdir -p /var/www/compbase
 sudo chown -R deploy:deploy /var/www/compbase
-git clone git@github.com:USERNAME/REPO.git /var/www/compbase
-cd /var/www/compbase
-pnpm install --frozen-lockfile
-pnpm --filter backend build
-pnpm --filter frontend build
 ```
+
+Catatan:
+
+- dengan workflow deploy yang sekarang, VPS tidak perlu build ulang
+- repo tidak wajib di-`git clone` di VPS untuk alur deploy harian
+- GitHub Actions akan mengirim bundle hasil build + `node_modules` ke VPS
 
 ## 5. Service systemd
 
@@ -309,12 +310,19 @@ Alur workflow sekarang:
 2. install dependency
 3. build backend
 4. build frontend
-5. SSH ke VPS
-6. `git fetch origin`
-7. checkout branch deploy langsung dari `origin/<branch>`
-8. install dan build ulang di VPS
+5. buat bundle deploy di GitHub Actions
+6. upload bundle ke VPS
+7. extract bundle ke direktori sementara di VPS
+8. `rsync` hasilnya ke direktori aplikasi
 9. restart backend dan frontend
 10. health check backend lokal VPS
+
+Bundle deploy saat ini mencakup source repo yang dibutuhkan runtime, hasil build, dan `node_modules`, sambil tetap mengecualikan:
+
+- `.git`
+- `.github`
+- `backend/.local`
+- `frontend/.next/cache`
 
 ## 11. Izin Restart Service
 
@@ -336,6 +344,7 @@ which systemctl
 - `pnpm --filter frontend build` sukses
 - `pnpm dlx supabase@latest db push` sudah dijalankan
 - `.env` di VPS terisi benar
+- `rsync` tersedia di VPS
 - backend sehat di `/health`
 - frontend bisa dibuka
 - jika ada data lama, migrasi data lokal sudah dijalankan
@@ -363,7 +372,8 @@ Periksa:
 Periksa:
 
 - SSH secret benar
-- branch deploy benar
+- `VPS_APP_DIR` benar
+- `rsync` tersedia di VPS
 - user deploy bisa restart service
 
 ## 14. Perintah Penting

@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -35,6 +35,16 @@ jobs:
       - name: Build frontend
         run: pnpm --filter frontend build
 
+      - name: Create deploy bundle
+        run: |
+          tar \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="node_modules" \
+            --exclude="backend/.local" \
+            --exclude="frontend/.next/cache" \
+            -czf /tmp/compbase-deploy.tgz .
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -42,26 +52,42 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Upload deploy bundle
+        run: |
+          scp -i ~/.ssh/id_ed25519 \
+            -P ${{ secrets.VPS_PORT }} \
+            /tmp/compbase-deploy.tgz \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/compbase-deploy.tgz
+
       - name: Deploy to VPS
         run: |
-          DEPLOY_BRANCH="${{ secrets.DEPLOY_BRANCH }}"
-          if [ -z "$DEPLOY_BRANCH" ]; then DEPLOY_BRANCH="main"; fi
-
-          ssh -o StrictHostKeyChecking=yes \
-              -p ${{ secrets.VPS_PORT }} \
-              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << EOF
+          ssh -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=yes \
+            -p ${{ secrets.VPS_PORT }} \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
 
-            cd ${{ secrets.VPS_APP_DIR }}
+            APP_DIR="${{ secrets.VPS_APP_DIR }}"
+            RELEASE_DIR="/tmp/compbase-release"
 
-            git fetch origin
-            git checkout -B "$DEPLOY_BRANCH" "origin/$DEPLOY_BRANCH"
+            mkdir -p "$APP_DIR"
+            rm -rf "$RELEASE_DIR"
+            mkdir -p "$RELEASE_DIR"
+
+            tar -xzf /tmp/compbase-deploy.tgz -C "$RELEASE_DIR"
+
+            rsync -a --delete \
+              --exclude ".env" \
+              --exclude "backend/.local" \
+              "$RELEASE_DIR"/ "$APP_DIR"/
+
+            cd "$APP_DIR"
 
             pnpm install --frozen-lockfile
 
-            pnpm --filter backend build
-            pnpm --filter frontend build
+            rm -rf "$RELEASE_DIR" /tmp/compbase-deploy.tgz
 
+            sudo systemctl daemon-reload
             sudo systemctl restart compbase-backend
             sudo systemctl restart compbase-frontend
 
@@ -70,5 +96,5 @@ jobs:
             sudo systemctl is-active compbase-backend
             sudo systemctl is-active compbase-frontend
 
-            curl -f http://127.0.0.1:4000/health
+            curl -f http://127.0.0.1:4100/health
           EOF
