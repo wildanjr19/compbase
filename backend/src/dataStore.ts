@@ -26,10 +26,10 @@ interface SupabaseCompetitionRow {
   slug: string;
   organizer: string;
   category: Competition["category"];
-  regStart: string;
-  regEnd: string;
-  eventStart: string;
-  eventEnd: string;
+  regStart: string | null;
+  regEnd: string | null;
+  eventStart: string | null;
+  eventEnd: string | null;
   isPriority: boolean;
   hasGuidebook: boolean;
   links: Competition["links"];
@@ -93,9 +93,22 @@ function createSupabaseCompetitionClient(): SupabaseClient | null {
   });
 }
 
+function toSupabaseDateValue(value: string): string | null {
+  const trimmedValue = value.trim();
+  return trimmedValue ? trimmedValue : null;
+}
+
+function fromSupabaseDateValue(value: string | null): string {
+  return value ?? "";
+}
+
 function toSupabaseRow(competition: Competition): SupabaseCompetitionRow {
   return {
     ...competition,
+    regStart: toSupabaseDateValue(competition.regStart),
+    regEnd: toSupabaseDateValue(competition.regEnd),
+    eventStart: toSupabaseDateValue(competition.eventStart),
+    eventEnd: toSupabaseDateValue(competition.eventEnd),
     links: {
       registration: competition.links.registration ?? "",
       guidebook: competition.links.guidebook ?? "",
@@ -110,6 +123,10 @@ function fromSupabaseRow(row: SupabaseCompetitionRow): Competition {
   return normalizeCompetition(
     competitionSchema.parse({
       ...row,
+      regStart: fromSupabaseDateValue(row.regStart),
+      regEnd: fromSupabaseDateValue(row.regEnd),
+      eventStart: fromSupabaseDateValue(row.eventStart),
+      eventEnd: fromSupabaseDateValue(row.eventEnd),
       links: row.links ?? {},
     }),
   );
