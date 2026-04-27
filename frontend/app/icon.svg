@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="surface" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#251B34" />
+      <stop offset="0.55" stop-color="#181428" />
+      <stop offset="1" stop-color="#10101C" />
+    </linearGradient>
+    <linearGradient id="ring" x1="18" y1="18" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1D8A9" />
+      <stop offset="0.5" stop-color="#DCC3E7" />
+      <stop offset="1" stop-color="#8FD5C0" />
+    </linearGradient>
+    <linearGradient id="spine" x1="32" y1="18" x2="32" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBF3DC" />
+      <stop offset="1" stop-color="#E6D7F1" />
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#surface)" />
+  <rect x="7.5" y="7.5" width="49" height="49" rx="12.5" stroke="#FFFFFF" stroke-opacity="0.08" />
+
+  <path
+    d="M32 18C24.268 18 18 24.268 18 32C18 39.732 24.268 46 32 46C36.009 46 39.624 44.314 42.175 41.612"
+    stroke="url(#ring)"
+    stroke-linecap="round"
+    stroke-width="4.5"
+  />
+  <path
+    d="M32 18C39.732 18 46 24.268 46 32"
+    stroke="url(#ring)"
+    stroke-linecap="round"
+    stroke-width="4.5"
+  />
+  <path d="M32 20V44" stroke="url(#spine)" stroke-linecap="round" stroke-width="3.5" />
+  <circle cx="32" cy="32" r="4.5" fill="#F4E6BF" />
+  <circle cx="32" cy="32" r="2" fill="#171322" />
+</svg>

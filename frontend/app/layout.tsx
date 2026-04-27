@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "CompBase | Direktori Kompetisi Data Science",
   description:
     "CompBase membantu mahasiswa dan praktisi menemukan kompetisi Statistik & Data Science berdasarkan urgensi deadline.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -27,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${bodyFont.variable} ${brandFont.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background text-foreground">{children}</body>
+      <body className="compbase-canvas min-h-full bg-background text-foreground">{children}</body>
     </html>
   );
 }

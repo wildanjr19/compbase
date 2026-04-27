@@ -1,26 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(0.17 0.02 254);
+  --foreground: oklch(0.96 0.01 97);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-body);
+  --font-brand: var(--font-display);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 12% -10%, oklch(0.67 0.14 165 / 0.24), transparent 42%),
+    radial-gradient(circle at 90% -18%, oklch(0.72 0.13 88 / 0.2), transparent 44%),
+    linear-gradient(180deg, oklch(0.2 0.03 253) 0%, oklch(0.15 0.02 253) 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), sans-serif;
+}
+
+::selection {
+  background: oklch(0.63 0.12 163 / 0.45);
+  color: oklch(0.98 0.01 99);
 }
