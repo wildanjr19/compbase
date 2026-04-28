@@ -57,6 +57,7 @@ type EditableCompetitionLink =
   | "instagram"
   | "linktree"
   | "website";
+type EventDateMode = "single" | "range";
 
 const CATEGORY_OPTIONS: CompetitionCategory[] = [...COMPETITION_CATEGORIES];
 const MAX_PRIORITY_COMPETITIONS = 3;
@@ -243,6 +244,18 @@ function isCompetitionCategory(value: string): value is CompetitionCategory {
   return CATEGORY_OPTIONS.some((category) => category === value);
 }
 
+function inferEventDateMode(competition: Competition): EventDateMode {
+  if (
+    competition.eventStart.trim() &&
+    competition.eventEnd.trim() &&
+    competition.eventStart !== competition.eventEnd
+  ) {
+    return "range";
+  }
+
+  return "single";
+}
+
 function validateCompetition(competition: Competition): string[] {
   const parsedResult = competitionSchema.safeParse(competition);
 
@@ -285,6 +298,8 @@ export function AdminCompetitionManager({
   const [saveMessage, setSaveMessage] = useState<string>(
     "Belum ada perubahan baru yang disimpan di sesi browser ini.",
   );
+  const [eventDateModeByCompetitionId, setEventDateModeByCompetitionId] =
+    useState<Record<string, EventDateMode>>({});
   const deferredSearchValue = useDeferredValue(searchValue);
   const regStartInputRef = useRef<HTMLInputElement>(null);
   const regEndInputRef = useRef<HTMLInputElement>(null);
@@ -397,6 +412,11 @@ export function AdminCompetitionManager({
   const selectedPriorityOrder = selectedCompetition
     ? priorityOrderByCompetitionId.get(selectedCompetition.id) ?? null
     : null;
+  const selectedEventDateMode = selectedCompetition
+    ? (eventDateModeByCompetitionId[selectedCompetition.id] ??
+      inferEventDateMode(selectedCompetition))
+    : "single";
+  const isSingleEventDate = selectedEventDateMode === "single";
 
   const openCompetitions = competitions.filter(
     (competition) => getCompetitionStatus(competition, now) === "open",
@@ -427,6 +447,13 @@ export function AdminCompetitionManager({
       return;
     }
 
+    if (field === "category" && value === "Olympiad") {
+      setEventDateModeByCompetitionId((currentModes) => ({
+        ...currentModes,
+        [selectedCompetition.id]: "single",
+      }));
+    }
+
     updateCompetition(selectedCompetition.id, (competition) => {
       if (field === "category") {
         if (!isCompetitionCategory(value)) {
@@ -443,6 +470,10 @@ export function AdminCompetitionManager({
         ...competition,
         [field]: value,
       };
+
+      if (field === "eventStart" && isSingleEventDate) {
+        updatedCompetition.eventEnd = value;
+      }
 
       if (field === "name") {
         updatedCompetition.slug = createSlug(value, competition.id);
@@ -772,6 +803,24 @@ export function AdminCompetitionManager({
 
       setSubmissionMessage("Pengajuan berhasil ditolak.");
     });
+  };
+
+  const handleEventDateModeChange = (mode: EventDateMode): void => {
+    if (!selectedCompetition) {
+      return;
+    }
+
+    setEventDateModeByCompetitionId((currentModes) => ({
+      ...currentModes,
+      [selectedCompetition.id]: mode,
+    }));
+
+    if (mode === "single") {
+      updateCompetition(selectedCompetition.id, (competition) => ({
+        ...competition,
+        eventEnd: competition.eventStart,
+      }));
+    }
   };
 
   const handleTogglePriority = (): void => {
@@ -1264,10 +1313,75 @@ export function AdminCompetitionManager({
                   </section>
 
                   <section className="grid gap-4 rounded-[1.3rem] border border-white/8 bg-white/[0.025] p-4 sm:p-5 lg:grid-cols-2">
-                    <div className="lg:col-span-2">
+                    <div className="flex items-start justify-between gap-3 lg:col-span-2">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                         Jadwal utama
                       </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleEventDateModeChange(
+                            isSingleEventDate ? "range" : "single",
+                          )
+                        }
+                        title={
+                          isSingleEventDate
+                            ? "Mode saat ini: satu tanggal. Klik untuk ubah ke rentang."
+                            : "Mode saat ini: rentang tanggal. Klik untuk ubah ke satu tanggal."
+                        }
+                        aria-label={
+                          isSingleEventDate
+                            ? "Ubah mode penyisihan ke rentang tanggal"
+                            : "Ubah mode penyisihan ke satu tanggal"
+                        }
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-[0.7rem] border transition ${
+                          isSingleEventDate
+                            ? "border-amber-200/26 bg-amber-200/14 text-amber-100"
+                            : "border-sky-200/24 bg-sky-200/12 text-sky-100"
+                        }`}
+                      >
+                        {isSingleEventDate ? (
+                          <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 15 15"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <circle
+                              cx="7.5"
+                              cy="7.5"
+                              r="4.25"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 15 15"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <rect
+                              x="2.25"
+                              y="3.25"
+                              width="10.5"
+                              height="8.5"
+                              rx="2.2"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M7.5 3.5V11.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        )}
+                      </button>
                     </div>
 
                     <label className="grid gap-2 text-sm">
@@ -1388,9 +1502,11 @@ export function AdminCompetitionManager({
                       </div>
                     </label>
 
-                    <label className="grid gap-2 text-sm">
+                    <label className={`grid gap-2 text-sm ${isSingleEventDate ? "sm:col-span-2" : ""}`}>
                       <span className="font-medium text-zinc-200">
-                        Mulai penyisihan
+                        {isSingleEventDate
+                          ? "Tanggal penyisihan"
+                          : "Mulai penyisihan"}
                       </span>
                       <div className="relative">
                         <input
@@ -1448,65 +1564,67 @@ export function AdminCompetitionManager({
                       </div>
                     </label>
 
-                    <label className="grid gap-2 text-sm">
-                      <span className="font-medium text-zinc-200">
-                        Selesai penyisihan
-                      </span>
-                      <div className="relative">
-                        <input
-                          ref={eventEndInputRef}
-                          type="date"
-                          value={selectedCompetition.eventEnd}
-                          onChange={(event) =>
-                            handleFieldChange("eventEnd", event.target.value)
-                          }
-                          className="h-11 w-full appearance-none rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openDatePicker(eventEndInputRef.current)
-                          }
-                          aria-label="Buka kalender tanggal selesai penyisihan"
-                          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            aria-hidden="true"
+                    {isSingleEventDate ? null : (
+                      <label className="grid gap-2 text-sm">
+                        <span className="font-medium text-zinc-200">
+                          Selesai penyisihan
+                        </span>
+                        <div className="relative">
+                          <input
+                            ref={eventEndInputRef}
+                            type="date"
+                            value={selectedCompetition.eventEnd}
+                            onChange={(event) =>
+                              handleFieldChange("eventEnd", event.target.value)
+                            }
+                            className="h-11 w-full appearance-none rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 pr-11 text-zinc-100 outline-none ring-amber-200/30 focus:ring [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openDatePicker(eventEndInputRef.current)
+                            }
+                            aria-label="Buka kalender tanggal selesai penyisihan"
+                            className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-300 transition hover:text-zinc-100"
                           >
-                            <path
-                              d="M4 1.75V3.5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                            />
-                            <path
-                              d="M12 1.75V3.5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                            />
-                            <rect
-                              x="2.5"
-                              y="2.75"
-                              width="11"
-                              height="10.75"
-                              rx="2"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                            />
-                            <path
-                              d="M2.5 5.75H13.5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </label>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M4 1.75V3.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                              <path
+                                d="M12 1.75V3.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                              <rect
+                                x="2.5"
+                                y="2.75"
+                                width="11"
+                                height="10.75"
+                                rx="2"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                              />
+                              <path
+                                d="M2.5 5.75H13.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </label>
+                    )}
                   </section>
 
                   <section className="grid gap-4 rounded-[1.3rem] border border-white/8 bg-white/[0.025] p-4 sm:p-5">

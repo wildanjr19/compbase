@@ -25,14 +25,20 @@ export async function submitCompetitionProposalAction(
   _previousState: SubmissionFormState,
   formData: FormData,
 ): Promise<SubmissionFormState> {
+  const eventDateMode = getTextValue(formData.get("eventDateMode"));
+  const rawEventStart = getTextValue(formData.get("eventStart"));
+  const rawEventEnd = getTextValue(formData.get("eventEnd"));
+  const eventEndValue =
+    eventDateMode === "single" ? rawEventStart : rawEventEnd;
+
   const input = {
     name: getTextValue(formData.get("name")),
     organizer: getTextValue(formData.get("organizer")),
     category: getTextValue(formData.get("category")),
     regStart: getTextValue(formData.get("regStart")),
     regEnd: getTextValue(formData.get("regEnd")),
-    eventStart: getTextValue(formData.get("eventStart")),
-    eventEnd: getTextValue(formData.get("eventEnd")),
+    eventStart: rawEventStart,
+    eventEnd: eventEndValue,
     links: {
       registration: getTextValue(formData.get("registration")),
       guidebook: getTextValue(formData.get("guidebook")),

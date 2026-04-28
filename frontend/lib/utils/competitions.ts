@@ -183,8 +183,20 @@ export function formatDateRange(startDate: string, endDate: string): string {
     return "Belum ditentukan";
   }
 
+  if (hasDate(startDate) && !hasDate(endDate)) {
+    return formatDate(startDate);
+  }
+
+  if (!hasDate(startDate) && hasDate(endDate)) {
+    return formatDate(endDate);
+  }
+
   if (!hasDate(startDate) || !hasDate(endDate)) {
     return "Menunggu jadwal lengkap";
+  }
+
+  if (startDate === endDate) {
+    return formatDate(startDate);
   }
 
   return `${formatDate(startDate)} - ${formatDate(endDate)}`;

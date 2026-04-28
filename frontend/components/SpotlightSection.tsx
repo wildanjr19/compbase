@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import type { Competition } from "@/lib/types";
 import {
   formatDate,
+  formatDateRange,
   getCompetitionStatus,
   getDaysUntilDeadline,
 } from "@/lib/utils/competitions";
@@ -83,8 +84,10 @@ export function SpotlightSection({
                   Penyisihan
                 </dt>
                 <dd className="text-[1.01rem] font-medium leading-relaxed text-zinc-200">
-                  {formatDate(primaryCompetition.eventStart)} sampai{" "}
-                  {formatDate(primaryCompetition.eventEnd)}
+                  {formatDateRange(
+                    primaryCompetition.eventStart,
+                    primaryCompetition.eventEnd,
+                  )}
                 </dd>
               </dl>
               <dl className="grid gap-1.5">
