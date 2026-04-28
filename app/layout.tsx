@@ -15,7 +15,7 @@ const brandFont = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "CompBase | Direktori Kompetisi Data Science",
+  title: "CompBase | Direktori Kompetisi",
   description:
     "CompBase membantu mahasiswa dan praktisi menemukan kompetisi Statistik & Data Science berdasarkan urgensi deadline.",
 };

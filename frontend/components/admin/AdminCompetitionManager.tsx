@@ -11,6 +11,7 @@ import {
 import {
   approveSubmissionAction,
   createCompetitionAction,
+  deleteSubmissionAction,
   deleteCompetitionAction,
   logoutAdminAction,
   rejectSubmissionAction,
@@ -28,6 +29,7 @@ import {
 import {
   formatDate,
   formatDateRange,
+  getDaysUntilDeadline,
   getCompetitionStatus,
 } from "@/lib/utils/competitions";
 
@@ -57,6 +59,7 @@ type EditableCompetitionLink =
   | "website";
 
 const CATEGORY_OPTIONS: CompetitionCategory[] = [...COMPETITION_CATEGORIES];
+const MAX_PRIORITY_COMPETITIONS = 3;
 
 function getStatusLabel(status: CompetitionStatus): string {
   if (status === "coming-soon") {
@@ -104,6 +107,48 @@ function getSubmissionStatusClassName(status: SubmissionStatus): string {
   }
 
   return "border-amber-300/20 bg-amber-300/10 text-amber-100";
+}
+
+function getStatusOrder(status: CompetitionStatus): number {
+  if (status === "open") {
+    return 0;
+  }
+
+  if (status === "coming-soon") {
+    return 1;
+  }
+
+  return 2;
+}
+
+function comparePriorityCompetition(
+  left: Competition,
+  right: Competition,
+  now: Date,
+): number {
+  const leftStatus = getCompetitionStatus(left, now);
+  const rightStatus = getCompetitionStatus(right, now);
+
+  if (leftStatus !== rightStatus) {
+    return getStatusOrder(leftStatus) - getStatusOrder(rightStatus);
+  }
+
+  const leftDays = getDaysUntilDeadline(left.regEnd, now);
+  const rightDays = getDaysUntilDeadline(right.regEnd, now);
+
+  if (leftDays === null && rightDays === null) {
+    return left.name.localeCompare(right.name, "id-ID");
+  }
+
+  if (leftDays === null) {
+    return 1;
+  }
+
+  if (rightDays === null) {
+    return -1;
+  }
+
+  return leftDays - rightDays;
 }
 
 function formatDateTime(dateValue: string): string {
@@ -336,6 +381,22 @@ export function AdminCompetitionManager({
   const hasUnsavedChanges =
     serializeCompetitions(competitions) !==
     serializeCompetitions(savedCompetitions);
+  const priorityCompetitionsCount = competitions.filter(
+    (competition) => competition.isPriority,
+  ).length;
+  const priorityCompetitionIds = competitions
+    .filter((competition) => competition.isPriority)
+    .sort((left, right) => comparePriorityCompetition(left, right, now))
+    .map((competition) => competition.id);
+  const priorityOrderByCompetitionId = new Map<string, number>(
+    priorityCompetitionIds.map((competitionId, index) => [
+      competitionId,
+      index + 1,
+    ]),
+  );
+  const selectedPriorityOrder = selectedCompetition
+    ? priorityOrderByCompetitionId.get(selectedCompetition.id) ?? null
+    : null;
 
   const openCompetitions = competitions.filter(
     (competition) => getCompetitionStatus(competition, now) === "open",
@@ -415,6 +476,13 @@ export function AdminCompetitionManager({
 
   const handleSave = (): void => {
     if (!selectedCompetition) {
+      return;
+    }
+
+    if (priorityCompetitionsCount > MAX_PRIORITY_COMPETITIONS) {
+      setSaveMessage(
+        `Maksimal ${MAX_PRIORITY_COMPETITIONS} kompetisi prioritas. Kurangi tanda prioritas terlebih dahulu sebelum menyimpan.`,
+      );
       return;
     }
 
@@ -505,6 +573,7 @@ export function AdminCompetitionManager({
       ...selectedCompetition,
       id: `cmp-${String(nextIndex).padStart(3, "0")}`,
       name: `${selectedCompetition.name} Copy`,
+      isPriority: false,
     };
 
     duplicatedCompetition.slug = createSlug(
@@ -705,6 +774,47 @@ export function AdminCompetitionManager({
     });
   };
 
+  const handleTogglePriority = (): void => {
+    if (!selectedCompetition) {
+      return;
+    }
+
+    const willBecomePriority = !selectedCompetition.isPriority;
+
+    if (
+      willBecomePriority &&
+      priorityCompetitionsCount >= MAX_PRIORITY_COMPETITIONS
+    ) {
+      return;
+    }
+
+    updateCompetition(selectedCompetition.id, (competition) => ({
+      ...competition,
+      isPriority: !competition.isPriority,
+    }));
+  };
+
+  const handleDeleteSubmission = (submissionId: string): void => {
+    startMutationTransition(async () => {
+      const mutationResult = await deleteSubmissionAction(submissionId);
+
+      if (!mutationResult.ok || !mutationResult.submissionId) {
+        setSubmissionMessage(
+          mutationResult.errorMessage ?? "Pengajuan belum berhasil dihapus.",
+        );
+        return;
+      }
+
+      setSubmissions((currentSubmissions) =>
+        currentSubmissions.filter(
+          (submission) => submission.id !== mutationResult.submissionId,
+        ),
+      );
+
+      setSubmissionMessage("Pengajuan berhasil dihapus.");
+    });
+  };
+
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -897,11 +1007,18 @@ export function AdminCompetitionManager({
                             {competition.organizer}
                           </p>
                         </div>
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getStatusClassName(status)}`}
-                        >
-                          {getStatusLabel(status)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getStatusClassName(status)}`}
+                          >
+                            {getStatusLabel(status)}
+                          </span>
+                          {competition.isPriority ? (
+                            <span className="inline-flex rounded-full border border-sky-300/20 bg-sky-300/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-100">
+                              Prioritas {priorityOrderByCompetitionId.get(competition.id)}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
@@ -910,11 +1027,6 @@ export function AdminCompetitionManager({
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {competition.isPriority ? (
-                          <span className="rounded-full border border-sky-300/18 bg-sky-300/10 px-2.5 py-1 text-[11px] text-sky-100">
-                            Prioritas
-                          </span>
-                        ) : null}
                         {validationErrors.length > 0 ? (
                           <span className="rounded-full border border-rose-300/18 bg-rose-300/10 px-2.5 py-1 text-[11px] text-rose-100">
                             {validationErrors.length} catatan
@@ -949,11 +1061,6 @@ export function AdminCompetitionManager({
                       <h2 className="mt-2 font-brand text-[1.75rem] leading-tight text-zinc-50 sm:text-[2rem]">
                         {selectedCompetition.name}
                       </h2>
-                      <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-zinc-400 sm:text-sm">
-                        Perubahan tetap bisa ditinjau sebagai draft di editor,
-                        lalu dikirim ke backend lewat tombol simpan agar katalog
-                        publik dan panel admin selalu sinkron.
-                      </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
@@ -1031,6 +1138,38 @@ export function AdminCompetitionManager({
                     </div>
                   </div>
                 </div>
+
+                <section className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+                        Pilihan cepat
+                      </p>
+                      <p className="mt-1 text-sm text-zinc-300">
+                        Prioritas {priorityCompetitionsCount}/{MAX_PRIORITY_COMPETITIONS}
+                        {selectedPriorityOrder ? ` • Urutan ${selectedPriorityOrder}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={
+                        isMutationPending ||
+                        (!selectedCompetition.isPriority &&
+                          priorityCompetitionsCount >= MAX_PRIORITY_COMPETITIONS)
+                      }
+                      onClick={handleTogglePriority}
+                      className={`inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-70 ${
+                        selectedCompetition.isPriority
+                          ? "border-sky-300/24 bg-sky-300/14 text-sky-100 hover:border-sky-300/32 hover:bg-sky-300/20"
+                          : "border-white/10 bg-white/[0.03] text-zinc-100 hover:border-white/20 hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      {selectedCompetition.isPriority
+                        ? "Hapus dari prioritas"
+                        : "Jadikan prioritas"}
+                    </button>
+                  </div>
+                </section>
 
                 {selectedValidationErrors.length > 0 ? (
                   <section className="rounded-[1.25rem] border border-rose-300/16 bg-rose-300/10 p-4 text-sm text-rose-50">
@@ -1572,8 +1711,9 @@ export function AdminCompetitionManager({
                         </span>
                       </div>
 
-                      {submission.status === "pending" ? (
-                        <div className="mt-4 flex flex-wrap gap-3">
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {submission.status === "pending" ? (
+                          <>
                           <button
                             type="button"
                             disabled={isMutationPending}
@@ -1590,8 +1730,17 @@ export function AdminCompetitionManager({
                           >
                             Tolak
                           </button>
-                        </div>
-                      ) : null}
+                          </>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={isMutationPending}
+                          onClick={() => handleDeleteSubmission(submission.id)}
+                          className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-300/22 bg-zinc-300/12 px-4 text-sm font-medium text-zinc-100 transition hover:border-zinc-300/34 hover:bg-zinc-300/20 disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                          Hapus
+                        </button>
+                      </div>
                     </article>
                   ))
                 )}

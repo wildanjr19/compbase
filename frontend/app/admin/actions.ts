@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils/backend";
 import {
   approveSubmissionInBackend,
+  deleteSubmissionFromBackend,
   rejectSubmissionInBackend,
 } from "@/lib/utils/submissions";
 import {
@@ -42,6 +43,12 @@ export interface AdminSubmissionApproveState {
 }
 
 export interface AdminSubmissionRejectState {
+  ok: boolean;
+  submissionId: string | null;
+  errorMessage: string | null;
+}
+
+export interface AdminSubmissionDeleteState {
   ok: boolean;
   submissionId: string | null;
   errorMessage: string | null;
@@ -273,6 +280,40 @@ export async function rejectSubmissionAction(
     return {
       ok: true,
       submissionId: rejectedSubmissionId,
+      errorMessage: null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      submissionId: null,
+      errorMessage: getUnknownErrorMessage(error),
+    };
+  }
+}
+
+export async function deleteSubmissionAction(
+  submissionId: string,
+): Promise<AdminSubmissionDeleteState> {
+  await requireAdminSession();
+
+  const normalizedSubmissionId = submissionId.trim();
+
+  if (!normalizedSubmissionId) {
+    return {
+      ok: false,
+      submissionId: null,
+      errorMessage: "ID pengajuan wajib diisi sebelum proses hapus.",
+    };
+  }
+
+  try {
+    const deletedSubmissionId = await deleteSubmissionFromBackend(
+      normalizedSubmissionId,
+    );
+
+    return {
+      ok: true,
+      submissionId: deletedSubmissionId,
       errorMessage: null,
     };
   } catch (error) {

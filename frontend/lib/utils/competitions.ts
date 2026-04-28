@@ -308,13 +308,35 @@ export function getSpotlightCompetitions(
   now: Date,
   limit = 3,
 ): Competition[] {
-  const active = competitions.filter(
+  const nonClosedCompetitions = competitions.filter(
+    (competition) => getCompetitionStatus(competition, now) !== "closed",
+  );
+  const priorityCompetitions = nonClosedCompetitions.filter(
+    (competition) => competition.isPriority,
+  );
+  const fallbackCompetitions = nonClosedCompetitions.filter(
     (competition) => getCompetitionStatus(competition, now) === "open",
   );
 
-  const sorted = [...active].sort((left, right) => {
-    if (left.isPriority !== right.isPriority) {
-      return left.isPriority ? -1 : 1;
+  const spotlightSource =
+    priorityCompetitions.length > 0
+      ? priorityCompetitions
+      : fallbackCompetitions.length > 0
+        ? fallbackCompetitions
+        : nonClosedCompetitions;
+
+  const sorted = [...spotlightSource].sort((left, right) => {
+    const leftStatus = getCompetitionStatus(left, now);
+    const rightStatus = getCompetitionStatus(right, now);
+
+    if (leftStatus !== rightStatus) {
+      if (leftStatus === "open") {
+        return -1;
+      }
+
+      if (rightStatus === "open") {
+        return 1;
+      }
     }
 
     const leftDays = getDaysUntilDeadline(left.regEnd, now);

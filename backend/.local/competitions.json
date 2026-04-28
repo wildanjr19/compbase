@@ -1,5 +1,85 @@
 [
   {
+    "id": "cmp-009",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-9",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-008",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-8",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-007",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-7",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-006",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-6",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": true,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
     "id": "cmp-005",
     "name": "Kompetisi Baru Copy",
     "slug": "kompetisi-baru-copy",
@@ -9,7 +89,7 @@
     "regEnd": "2026-05-05",
     "eventStart": "",
     "eventEnd": "",
-    "isPriority": false,
+    "isPriority": true,
     "hasGuidebook": false,
     "links": {
       "registration": "",
@@ -29,7 +109,7 @@
     "regEnd": "2026-05-05",
     "eventStart": "",
     "eventEnd": "",
-    "isPriority": false,
+    "isPriority": true,
     "hasGuidebook": false,
     "links": {
       "registration": "",

@@ -55,6 +55,12 @@ interface SubmissionActionResponse {
   source: "supabase" | "local";
 }
 
+interface DeleteSubmissionResponse {
+  ok: true;
+  deletedId: string;
+  source: "supabase" | "local";
+}
+
 interface HealthResponse {
   ok: true;
   service: string;
@@ -123,6 +129,7 @@ function sendJson(
     | SubmissionsResponse
     | SubmissionResponse
     | SubmissionActionResponse
+    | DeleteSubmissionResponse
     | HealthResponse
     | ErrorResponse,
 ): void {
@@ -206,6 +213,20 @@ function getSubmissionActionPath(
       submissionId: match[1],
       action: match[2] as "approve" | "reject",
     };
+  }
+}
+
+function getSubmissionIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/submissions\/([^/]+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
   }
 }
 
@@ -372,6 +393,31 @@ async function handleCreateSubmission(
   }
 }
 
+async function handleDeleteSubmission(
+  res: ServerResponse,
+  submissionId: string,
+): Promise<void> {
+  try {
+    const deletedId = await competitionStore.deleteSubmission(submissionId);
+
+    sendJson(res, 200, {
+      ok: true,
+      deletedId,
+      source: competitionStore.source,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal menghapus pengajuan kompetisi.";
+
+    sendJson(res, 404, {
+      ok: false,
+      error: message,
+    });
+  }
+}
+
 async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -459,6 +505,13 @@ async function handleRequest(
       total: submissions.length,
       source: competitionStore.source,
     });
+    return;
+  }
+
+  const submissionId = getSubmissionIdFromPath(pathname);
+
+  if (submissionId && req.method === "DELETE") {
+    await handleDeleteSubmission(res, submissionId);
     return;
   }
 

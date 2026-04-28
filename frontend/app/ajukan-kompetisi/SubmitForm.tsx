@@ -8,6 +8,8 @@ import {
 import { COMPETITION_CATEGORIES } from "@/lib/types";
 
 const INITIAL_FORM_STATE: SubmissionFormState = {
+  ok: false,
+  successMessage: null,
   errorMessage: null,
 };
 
@@ -142,6 +144,12 @@ export function SubmitForm(): ReactElement {
       {state.errorMessage ? (
         <div className="rounded-[1rem] border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">
           {state.errorMessage}
+        </div>
+      ) : null}
+
+      {state.successMessage ? (
+        <div className="rounded-[1rem] border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+          {state.successMessage}
         </div>
       ) : null}
 
