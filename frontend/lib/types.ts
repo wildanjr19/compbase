@@ -1,3 +1,5 @@
+import { COMPETITION_CATEGORIES as SHARED_COMPETITION_CATEGORIES } from "@/lib/shared/schemas/competition";
+
 export interface CompetitionLinks {
   registration?: string;
   guidebook?: string;
@@ -23,18 +25,7 @@ export interface Competition {
 
 export type CompetitionStatus = "coming-soon" | "open" | "closed";
 
-export const COMPETITION_CATEGORIES = [
-  "Dashboard",
-  "Data Analytics",
-  "Data Mining",
-  "Data Science",
-  "Datathon",
-  "Essay",
-  "Hackathon",
-  "Infographics",
-  "LKTI",
-  "Olympiad",
-] as const;
+export const COMPETITION_CATEGORIES = SHARED_COMPETITION_CATEGORIES;
 
 export type CompetitionCategory = (typeof COMPETITION_CATEGORIES)[number];
 

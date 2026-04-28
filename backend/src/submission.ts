@@ -1,72 +1,19 @@
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
 import {
   competitionCategorySchema,
-  competitionLinksSchema,
   createSlug,
-  optionalDateSchema,
   type Competition,
   type CompetitionCategory,
   type CompetitionLinks,
 } from "./competition.ts";
+import {
+  competitionSubmissionSchema,
+  PAYMENT_STATUS_VALUES,
+  SUBMISSION_STATUS_VALUES,
+  type CompetitionSubmissionInput,
+} from "../../frontend/lib/shared/schemas/submission.ts";
 
-export const SUBMISSION_STATUS_VALUES = [
-  "pending",
-  "approved",
-  "rejected",
-] as const;
-
-export const PAYMENT_STATUS_VALUES = [
-  "unpaid",
-  "paid",
-  "waived",
-] as const;
-
-export const competitionSubmissionSchema = z
-  .object({
-    name: z.string().trim().min(1, "Nama kompetisi wajib diisi."),
-    organizer: z.string().trim().min(1, "Nama penyelenggara wajib diisi."),
-    category: competitionCategorySchema,
-    regStart: optionalDateSchema,
-    regEnd: optionalDateSchema,
-    eventStart: optionalDateSchema,
-    eventEnd: optionalDateSchema,
-    links: competitionLinksSchema,
-    submitterName: z.string().trim().min(1, "Nama pengaju wajib diisi."),
-    submitterEmail: z
-      .string()
-      .trim()
-      .email("Email pengaju harus menggunakan format email valid."),
-    notes: z.string().trim().optional().default(""),
-    honeypot: z.string().trim().optional().default(""),
-  })
-  .superRefine((data, context) => {
-    if (data.regStart && data.regEnd && data.regStart > data.regEnd) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Tanggal buka registrasi tidak boleh melewati tanggal tutup registrasi.",
-        path: ["regStart"],
-      });
-    }
-
-    if (data.eventStart && data.eventEnd && data.eventStart > data.eventEnd) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Tanggal mulai penyisihan tidak boleh melewati tanggal selesai penyisihan.",
-        path: ["eventStart"],
-      });
-    }
-
-    if (data.regEnd && data.eventEnd && data.regEnd > data.eventEnd) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Deadline pendaftaran tidak boleh melewati akhir penyisihan.",
-        path: ["regEnd"],
-      });
-    }
-  });
+export { competitionSubmissionSchema };
 
 export type SubmissionStatus = (typeof SUBMISSION_STATUS_VALUES)[number];
 export type PaymentStatus = (typeof PAYMENT_STATUS_VALUES)[number];
@@ -95,9 +42,7 @@ export interface CompetitionSubmission {
   updatedAt: string;
 }
 
-export type CompetitionSubmissionCreateInput = z.infer<
-  typeof competitionSubmissionSchema
->;
+export type CompetitionSubmissionCreateInput = CompetitionSubmissionInput;
 
 export function normalizeSubmissionInput(
   input: CompetitionSubmissionCreateInput,

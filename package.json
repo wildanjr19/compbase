@@ -12,7 +12,10 @@
     "build:backend": "pnpm --filter backend build",
     "start:frontend": "pnpm --filter frontend start",
     "start:backend": "pnpm --filter backend start",
-    "lint": "pnpm --filter frontend lint"
+    "lint": "pnpm --filter frontend lint",
+    "test": "pnpm -r test",
+    "test:frontend": "pnpm --filter frontend test",
+    "test:backend": "pnpm --filter backend test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

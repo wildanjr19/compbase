@@ -2,31 +2,24 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  createSessionValue,
+  isAdminSessionValueValid,
+  resolveAdminCredentials,
+  validateAdminCredentialsInput,
+} from "@/lib/authSession";
 
 const ADMIN_SESSION_COOKIE = "compbase_admin_session";
 
-function getAdminEmail(): string {
-  return process.env.ADMIN_EMAIL?.trim() || "admin@compbase.id";
-}
-
-function getAdminPassword(): string {
-  return process.env.ADMIN_PASSWORD?.trim() || "compbase-admin";
-}
-
-function createSessionValue(): string {
-  const rawValue = `${getAdminEmail()}:${getAdminPassword()}`;
-
-  return Buffer.from(rawValue).toString("base64url");
-}
-
 export function validateAdminCredentials(email: string, password: string): boolean {
-  return email.trim() === getAdminEmail() && password === getAdminPassword();
+  return validateAdminCredentialsInput(email, password, resolveAdminCredentials());
 }
 
 export async function createAdminSession(): Promise<void> {
   const cookieStore = await cookies();
+  const credentials = resolveAdminCredentials();
 
-  cookieStore.set(ADMIN_SESSION_COOKIE, createSessionValue(), {
+  cookieStore.set(ADMIN_SESSION_COOKIE, createSessionValue(credentials), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -44,8 +37,9 @@ export async function clearAdminSession(): Promise<void> {
 export async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const credentials = resolveAdminCredentials();
 
-  return sessionCookie === createSessionValue();
+  return isAdminSessionValueValid(sessionCookie, credentials);
 }
 
 export async function requireAdminSession(): Promise<void> {

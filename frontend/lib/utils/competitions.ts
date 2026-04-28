@@ -431,3 +431,17 @@ export function createCompetitionHref(
 
   return `/?${query}`;
 }
+
+export function clampCompetitionPage(
+  requestedPage: number,
+  totalItems: number,
+  pageSize: number,
+): number {
+  const safeRequestedPage = Number.isFinite(requestedPage)
+    ? Math.max(1, Math.floor(requestedPage))
+    : 1;
+  const safePageSize = Math.max(1, Math.floor(pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalItems / safePageSize));
+
+  return Math.min(safeRequestedPage, totalPages);
+}

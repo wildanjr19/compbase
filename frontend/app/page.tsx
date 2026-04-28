@@ -7,6 +7,7 @@ import { getCompetitionsFromBackend } from "@/lib/utils/backend";
 import {
   createCompetitionHref,
   filterCompetitions,
+  clampCompetitionPage,
   getCategoryOptions,
   getCompetitionStats,
   getSpotlightCompetitions,
@@ -69,7 +70,11 @@ export default async function Home({ searchParams }: HomePageProps) {
     1,
     Math.ceil(totalFilteredCompetitions / COMPETITIONS_PER_PAGE),
   );
-  const currentPage = Math.min(filters.page, totalPages);
+  const currentPage = clampCompetitionPage(
+    filters.page,
+    totalFilteredCompetitions,
+    COMPETITIONS_PER_PAGE,
+  );
   const startIndex = (currentPage - 1) * COMPETITIONS_PER_PAGE;
   const paginatedCompetitions = competitions.slice(
     startIndex,
@@ -162,7 +167,7 @@ export default async function Home({ searchParams }: HomePageProps) {
         {totalPages > 1 ? (
           <nav
             aria-label="Navigasi halaman kompetisi"
-            className="soft-panel rounded-[1.25rem] border border-white/10 bg-white/[0.03] px-4 py-3 sm:px-5"
+            className="px-1 py-1"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-zinc-300">

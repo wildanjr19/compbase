@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch --experimental-strip-types src/server.ts",
-    "start": "node --experimental-strip-types src/server.ts",
+    "dev": "node --watch --disable-warning=ExperimentalWarning --experimental-strip-types src/server.ts",
+    "start": "node --disable-warning=ExperimentalWarning --experimental-strip-types src/server.ts",
     "build": "tsc -p tsconfig.json --noEmit",
-    "migrate:supabase": "node --experimental-strip-types src/migrateLocalToSupabase.ts"
+    "migrate:supabase": "node --disable-warning=ExperimentalWarning --experimental-strip-types src/migrateLocalToSupabase.ts",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",
