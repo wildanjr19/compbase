@@ -1,5 +1,145 @@
 [
   {
+    "id": "cmp-021",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-21",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-020",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-20",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-019",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-19",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-018",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-18",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-017",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-17",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-016",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-16",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-015",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-15",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "",
+    "regEnd": "",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
     "id": "cmp-009",
     "name": "Kompetisi Baru",
     "slug": "kompetisi-baru-9",

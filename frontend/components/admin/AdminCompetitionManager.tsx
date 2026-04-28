@@ -41,6 +41,7 @@ interface AdminCompetitionManagerProps {
 }
 
 type AdminPanelTab = "competitions" | "submissions";
+type AdminCompetitionStatusFilter = "all" | CompetitionStatus;
 
 type EditableCompetitionField =
   | "name"
@@ -84,6 +85,16 @@ function getStatusClassName(status: CompetitionStatus): string {
   }
 
   return "border-rose-300/28 bg-rose-300/12 text-rose-100";
+}
+
+function toAdminCompetitionStatusFilter(
+  value: string,
+): AdminCompetitionStatusFilter {
+  if (value === "open" || value === "coming-soon" || value === "closed") {
+    return value;
+  }
+
+  return "all";
 }
 
 function getSubmissionStatusLabel(status: SubmissionStatus): string {
@@ -295,6 +306,9 @@ export function AdminCompetitionManager({
     initialCompetitions[0]?.id ?? "",
   );
   const [searchValue, setSearchValue] = useState<string>("");
+  const [categoryFilterValue, setCategoryFilterValue] = useState<string>("all");
+  const [statusFilterValue, setStatusFilterValue] =
+    useState<AdminCompetitionStatusFilter>("all");
   const [saveMessage, setSaveMessage] = useState<string>(
     "Belum ada perubahan baru yang disimpan di sesi browser ini.",
   );
@@ -366,16 +380,34 @@ export function AdminCompetitionManager({
     inputElement.focus();
   };
 
+  const availableCategoryFilters = Array.from(
+    new Set(competitions.map((competition) => competition.category)),
+  ).sort((left, right) => left.localeCompare(right, "id-ID"));
+  const normalizedQuery = normalizeSearchValue(deferredSearchValue);
   const filteredCompetitions = competitions.filter((competition) => {
-    const query = normalizeSearchValue(deferredSearchValue);
+    if (
+      categoryFilterValue !== "all" &&
+      competition.category !== categoryFilterValue
+    ) {
+      return false;
+    }
 
-    if (!query) {
+    const competitionStatus = getCompetitionStatus(competition, now);
+
+    if (
+      statusFilterValue !== "all" &&
+      competitionStatus !== statusFilterValue
+    ) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
       return true;
     }
 
     return [competition.name, competition.organizer, competition.category]
       .map((value) => normalizeSearchValue(value))
-      .some((value) => value.includes(query));
+      .some((value) => value.includes(normalizedQuery));
   });
 
   const selectedCompetition =
@@ -1015,18 +1047,62 @@ export function AdminCompetitionManager({
                 </div>
               </div>
 
-              <label className="grid gap-2 text-sm">
-                <span className="font-medium text-zinc-200">
-                  Cari kompetisi
-                </span>
-                <input
-                  type="text"
-                  value={searchValue}
-                  onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="Cari nama, penyelenggara, atau kategori"
-                  className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 placeholder:text-zinc-500 focus:ring"
-                />
-              </label>
+              <div className="grid gap-3">
+                <label className="grid gap-2 text-sm">
+                  <span className="font-medium text-zinc-200">
+                    Cari kompetisi
+                  </span>
+                  <input
+                    type="text"
+                    value={searchValue}
+                    onChange={(event) => setSearchValue(event.target.value)}
+                    placeholder="Cari nama, penyelenggara, atau kategori"
+                    className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 placeholder:text-zinc-500 focus:ring"
+                  />
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-2 text-sm">
+                    <span className="font-medium text-zinc-200">
+                      Filter kategori
+                    </span>
+                    <select
+                      value={categoryFilterValue}
+                      onChange={(event) =>
+                        setCategoryFilterValue(event.target.value)
+                      }
+                      className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring [&>option]:bg-zinc-900 [&>option]:text-zinc-100"
+                    >
+                      <option value="all">Semua kategori</option>
+                      {availableCategoryFilters.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="grid gap-2 text-sm">
+                    <span className="font-medium text-zinc-200">
+                      Filter status
+                    </span>
+                    <select
+                      value={statusFilterValue}
+                      onChange={(event) =>
+                        setStatusFilterValue(
+                          toAdminCompetitionStatusFilter(event.target.value),
+                        )
+                      }
+                      className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring [&>option]:bg-zinc-900 [&>option]:text-zinc-100"
+                    >
+                      <option value="all">Semua status</option>
+                      <option value="open">Masih buka</option>
+                      <option value="coming-soon">Coming Soon</option>
+                      <option value="closed">Sudah tutup</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="subtle-scrollbar mt-5 min-h-0 flex-1 overflow-y-auto pr-2">

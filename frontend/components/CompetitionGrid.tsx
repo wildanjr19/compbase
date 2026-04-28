@@ -4,19 +4,15 @@ import type { Competition } from "@/lib/types";
 interface CompetitionGridProps {
   competitions: Competition[];
   totalCompetitions: number;
-  hiddenCompetitionsCount: number;
   now: Date;
   onOpenDetail: (competition: Competition) => void;
-  onShowAll?: () => void;
 }
 
 export function CompetitionGrid({
   competitions,
   totalCompetitions,
-  hiddenCompetitionsCount,
   now,
   onOpenDetail,
-  onShowAll,
 }: CompetitionGridProps) {
   if (totalCompetitions === 0) {
     return (
@@ -53,18 +49,6 @@ export function CompetitionGrid({
           </li>
         ))}
       </ul>
-
-      {hiddenCompetitionsCount > 0 && onShowAll ? (
-        <div className="flex justify-center pt-2">
-          <button
-            type="button"
-            onClick={onShowAll}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.045] px-5 text-sm font-medium text-zinc-100 shadow-[inset_0_1px_0_oklch(1_0_0_/_0.06)] hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
-          >
-            Tampilkan semua {totalCompetitions} kompetisi
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }

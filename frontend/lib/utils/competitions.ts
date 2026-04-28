@@ -14,6 +14,7 @@ const DEFAULT_FILTERS: CompetitionFilters = {
   category: "all",
   tab: "all",
   sort: "deadline",
+  page: 1,
 };
 
 type SearchParamValue = string | string[] | undefined;
@@ -75,6 +76,17 @@ function isCompetitionSort(value: string): value is CompetitionSort {
   return ["deadline", "name"].includes(value);
 }
 
+function parsePageValue(value: SearchParamValue): number {
+  const rawPage = pickFirstValue(value).trim();
+  const parsedPage = Number.parseInt(rawPage, 10);
+
+  if (Number.isNaN(parsedPage) || parsedPage < 1) {
+    return DEFAULT_FILTERS.page;
+  }
+
+  return parsedPage;
+}
+
 function getCompetitionStatusOrder(status: CompetitionStatus): number {
   const statusOrder: Record<CompetitionStatus, number> = {
     open: 0,
@@ -107,6 +119,7 @@ export function parseCompetitionFilters(
   const category = normalizeCategoryLabel(rawCategory);
   const tabInput = pickFirstValue(searchParams.tab);
   const sortInput = pickFirstValue(searchParams.sort);
+  const page = parsePageValue(searchParams.page);
 
   const normalizedTab = normalizeText(tabInput);
   const normalizedSort = normalizeText(sortInput);
@@ -120,6 +133,7 @@ export function parseCompetitionFilters(
     sort: isCompetitionSort(normalizedSort)
       ? normalizedSort
       : DEFAULT_FILTERS.sort,
+    page,
   };
 }
 
@@ -403,6 +417,10 @@ export function createCompetitionHref(
 
   if (filters.sort && filters.sort !== "deadline") {
     params.set("sort", filters.sort);
+  }
+
+  if (typeof filters.page === "number" && filters.page > 1) {
+    params.set("page", String(filters.page));
   }
 
   const query = params.toString();

@@ -47,6 +47,7 @@ export interface CompetitionFilters {
   category: string;
   tab: CompetitionTab;
   sort: CompetitionSort;
+  page: number;
 }
 
 export interface CompetitionStats {
