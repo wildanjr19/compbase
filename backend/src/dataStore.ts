@@ -5,11 +5,18 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import {
   competitionSchema,
+  createSlug,
+  getNextCompetitionId,
   normalizeCompetition,
   type Competition,
 } from "./competition.ts";
+import {
+  submissionToCompetition,
+  toCompetitionSubmission,
+  type CompetitionSubmission,
+} from "./submission.ts";
 
-interface CompetitionStore {
+export interface CompetitionStore {
   listCompetitions(): Promise<Competition[]>;
   createCompetition(competition: Competition): Promise<Competition>;
   updateCompetition(
@@ -17,6 +24,10 @@ interface CompetitionStore {
     competition: Competition,
   ): Promise<Competition>;
   deleteCompetition(competitionId: string): Promise<string>;
+  listSubmissions(): Promise<CompetitionSubmission[]>;
+  createSubmission(submission: CompetitionSubmission): Promise<CompetitionSubmission>;
+  approveSubmission(submissionId: string): Promise<Competition>;
+  rejectSubmission(submissionId: string): Promise<string>;
   source: "supabase" | "local";
 }
 
@@ -35,6 +46,30 @@ interface SupabaseCompetitionRow {
   links: Competition["links"];
 }
 
+interface SupabaseSubmissionRow {
+  id: string;
+  name: string;
+  slug: string;
+  organizer: string;
+  category: CompetitionSubmission["category"];
+  reg_start: string | null;
+  reg_end: string | null;
+  event_start: string | null;
+  event_end: string | null;
+  is_priority: boolean;
+  has_guidebook: boolean;
+  links: CompetitionSubmission["links"];
+  submitter_name: string;
+  submitter_email: string;
+  notes: string | null;
+  status: CompetitionSubmission["status"];
+  payment_status: CompetitionSubmission["paymentStatus"];
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const backendRootPath = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRootPath = resolve(backendRootPath, "..");
 const defaultLocalDataPath = resolve(
@@ -42,7 +77,13 @@ const defaultLocalDataPath = resolve(
   ".local",
   "competitions.json",
 );
+const defaultLocalSubmissionsPath = resolve(
+  backendRootPath,
+  ".local",
+  "submissions.json",
+);
 const competitionArraySchema = z.array(competitionSchema);
+const submissionArraySchema = z.array(z.record(z.string(), z.unknown()));
 
 function getSupabaseUrl(): string | null {
   const value = process.env.SUPABASE_URL?.trim();
@@ -59,6 +100,11 @@ function getSupabaseTableName(): string {
   return value ? value : "competitions";
 }
 
+function getSupabaseSubmissionTableName(): string {
+  const value = process.env.SUPABASE_SUBMISSIONS_TABLE?.trim();
+  return value ? value : "competition_submissions";
+}
+
 function getLocalCompetitionsFilePath(): string {
   const configuredPath = process.env.LOCAL_COMPETITIONS_FILE_PATH?.trim();
 
@@ -66,11 +112,21 @@ function getLocalCompetitionsFilePath(): string {
     return defaultLocalDataPath;
   }
 
-  if (configuredPath.startsWith("backend/")) {
+  if (configuredPath.startsWith("backend/") || configuredPath.startsWith("backend\\")) {
     return resolve(workspaceRootPath, configuredPath);
   }
 
-  if (configuredPath.startsWith("backend\\")) {
+  return resolve(process.cwd(), configuredPath);
+}
+
+function getLocalSubmissionsFilePath(): string {
+  const configuredPath = process.env.LOCAL_SUBMISSIONS_FILE_PATH?.trim();
+
+  if (!configuredPath) {
+    return defaultLocalSubmissionsPath;
+  }
+
+  if (configuredPath.startsWith("backend/") || configuredPath.startsWith("backend\\")) {
     return resolve(workspaceRootPath, configuredPath);
   }
 
@@ -102,7 +158,7 @@ function fromSupabaseDateValue(value: string | null): string {
   return value ?? "";
 }
 
-function toSupabaseRow(competition: Competition): SupabaseCompetitionRow {
+function toSupabaseCompetitionRow(competition: Competition): SupabaseCompetitionRow {
   return {
     ...competition,
     regStart: toSupabaseDateValue(competition.regStart),
@@ -119,7 +175,7 @@ function toSupabaseRow(competition: Competition): SupabaseCompetitionRow {
   };
 }
 
-function fromSupabaseRow(row: SupabaseCompetitionRow): Competition {
+function fromSupabaseCompetitionRow(row: SupabaseCompetitionRow): Competition {
   return normalizeCompetition(
     competitionSchema.parse({
       ...row,
@@ -130,6 +186,44 @@ function fromSupabaseRow(row: SupabaseCompetitionRow): Competition {
       links: row.links ?? {},
     }),
   );
+}
+
+function toSupabaseSubmissionPayload(
+  submission: CompetitionSubmission,
+): Record<string, unknown> {
+  return {
+    id: submission.id,
+    name: submission.name,
+    slug: submission.slug,
+    organizer: submission.organizer,
+    category: submission.category,
+    reg_start: toSupabaseDateValue(submission.regStart),
+    reg_end: toSupabaseDateValue(submission.regEnd),
+    event_start: toSupabaseDateValue(submission.eventStart),
+    event_end: toSupabaseDateValue(submission.eventEnd),
+    is_priority: submission.isPriority,
+    has_guidebook: submission.hasGuidebook,
+    links: {
+      registration: submission.links.registration ?? "",
+      guidebook: submission.links.guidebook ?? "",
+      instagram: submission.links.instagram ?? "",
+      linktree: submission.links.linktree ?? "",
+      website: submission.links.website ?? "",
+    },
+    submitter_name: submission.submitterName,
+    submitter_email: submission.submitterEmail,
+    notes: submission.notes || null,
+    status: submission.status,
+    payment_status: submission.paymentStatus,
+    reviewed_by: submission.reviewedBy || null,
+    reviewed_at: submission.reviewedAt || null,
+  };
+}
+
+function fromSupabaseSubmissionRow(
+  row: SupabaseSubmissionRow,
+): CompetitionSubmission {
+  return toCompetitionSubmission(row as unknown as Record<string, unknown>);
 }
 
 async function readLocalCompetitions(): Promise<Competition[]> {
@@ -148,12 +242,43 @@ async function readLocalCompetitions(): Promise<Competition[]> {
   }
 }
 
-async function writeLocalCompetitions(
-  competitions: Competition[],
-): Promise<void> {
+async function writeLocalCompetitions(competitions: Competition[]): Promise<void> {
   const filePath = getLocalCompetitionsFilePath();
   await mkdir(dirname(filePath), { recursive: true });
   await writeFile(filePath, JSON.stringify(competitions, null, 2), "utf8");
+}
+
+async function readLocalSubmissions(): Promise<CompetitionSubmission[]> {
+  const filePath = getLocalSubmissionsFilePath();
+
+  try {
+    const rawContent = await readFile(filePath, "utf8");
+    const parsedContent: unknown = JSON.parse(rawContent);
+    const rows = submissionArraySchema.parse(parsedContent);
+
+    return rows.map((row) => toCompetitionSubmission(row));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+async function writeLocalSubmissions(
+  submissions: CompetitionSubmission[],
+): Promise<void> {
+  const filePath = getLocalSubmissionsFilePath();
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, JSON.stringify(submissions, null, 2), "utf8");
+}
+
+function canApproveSubmission(submission: CompetitionSubmission): boolean {
+  return (
+    submission.status === "pending" &&
+    (submission.paymentStatus === "paid" || submission.paymentStatus === "waived")
+  );
 }
 
 function createLocalCompetitionStore(): CompetitionStore {
@@ -207,19 +332,104 @@ function createLocalCompetitionStore(): CompetitionStore {
       await writeLocalCompetitions(nextCompetitions);
       return competitionId;
     },
+    async listSubmissions(): Promise<CompetitionSubmission[]> {
+      const submissions = await readLocalSubmissions();
+      return [...submissions].sort((left, right) =>
+        right.createdAt.localeCompare(left.createdAt),
+      );
+    },
+    async createSubmission(
+      submission: CompetitionSubmission,
+    ): Promise<CompetitionSubmission> {
+      const submissions = await readLocalSubmissions();
+      const nextSubmissions = [submission, ...submissions];
+      await writeLocalSubmissions(nextSubmissions);
+      return submission;
+    },
+    async approveSubmission(submissionId: string): Promise<Competition> {
+      const submissions = await readLocalSubmissions();
+      const submissionIndex = submissions.findIndex(
+        (submission) => submission.id === submissionId,
+      );
+
+      if (submissionIndex === -1) {
+        throw new Error(`Pengajuan dengan ID ${submissionId} tidak ditemukan.`);
+      }
+
+      const submission = submissions[submissionIndex];
+
+      if (!canApproveSubmission(submission)) {
+        throw new Error(
+          `Pengajuan dengan ID ${submissionId} belum bisa disetujui karena status saat ini ${submission.status} atau pembayaran belum valid.`,
+        );
+      }
+
+      const competitions = await readLocalCompetitions();
+      const newCompetitionId = getNextCompetitionId(competitions);
+      const competition = submissionToCompetition(
+        {
+          ...submission,
+          slug: createSlug(submission.name),
+        },
+        newCompetitionId,
+      );
+
+      const createdCompetition = await this.createCompetition(competition);
+      const nowIso = new Date().toISOString();
+
+      const nextSubmissions = [...submissions];
+      nextSubmissions[submissionIndex] = {
+        ...submission,
+        status: "approved",
+        reviewedAt: nowIso,
+        updatedAt: nowIso,
+      };
+
+      await writeLocalSubmissions(nextSubmissions);
+      return createdCompetition;
+    },
+    async rejectSubmission(submissionId: string): Promise<string> {
+      const submissions = await readLocalSubmissions();
+      const submissionIndex = submissions.findIndex(
+        (submission) => submission.id === submissionId,
+      );
+
+      if (submissionIndex === -1) {
+        throw new Error(`Pengajuan dengan ID ${submissionId} tidak ditemukan.`);
+      }
+
+      const submission = submissions[submissionIndex];
+
+      if (submission.status !== "pending") {
+        throw new Error(
+          `Pengajuan dengan ID ${submissionId} sudah pernah direview.`,
+        );
+      }
+
+      const nowIso = new Date().toISOString();
+      const nextSubmissions = [...submissions];
+      nextSubmissions[submissionIndex] = {
+        ...submission,
+        status: "rejected",
+        reviewedAt: nowIso,
+        updatedAt: nowIso,
+      };
+
+      await writeLocalSubmissions(nextSubmissions);
+      return submissionId;
+    },
   };
 }
 
-function createSupabaseCompetitionStore(
-  supabase: SupabaseClient,
-): CompetitionStore {
-  const tableName = getSupabaseTableName();
+function createSupabaseCompetitionStore(supabase: SupabaseClient): CompetitionStore {
+  const competitionTableName = getSupabaseTableName();
+  const submissionTableName = getSupabaseSubmissionTableName();
 
   return {
     source: "supabase",
     async listCompetitions(): Promise<Competition[]> {
       const { data, error } = await supabase
-        .from(tableName)
+        .from(competitionTableName)
         .select(
           "id,name,slug,organizer,category,regStart,regEnd,eventStart,eventEnd,isPriority,hasGuidebook,links",
         );
@@ -229,13 +439,13 @@ function createSupabaseCompetitionStore(
       }
 
       return (data ?? []).map((row) =>
-        fromSupabaseRow(row as SupabaseCompetitionRow),
+        fromSupabaseCompetitionRow(row as SupabaseCompetitionRow),
       );
     },
     async createCompetition(competition: Competition): Promise<Competition> {
       const { data, error } = await supabase
-        .from(tableName)
-        .insert(toSupabaseRow(competition))
+        .from(competitionTableName)
+        .insert(toSupabaseCompetitionRow(competition))
         .select(
           "id,name,slug,organizer,category,regStart,regEnd,eventStart,eventEnd,isPriority,hasGuidebook,links",
         )
@@ -245,15 +455,15 @@ function createSupabaseCompetitionStore(
         throw new Error(`Gagal membuat data di Supabase: ${error.message}`);
       }
 
-      return fromSupabaseRow(data as SupabaseCompetitionRow);
+      return fromSupabaseCompetitionRow(data as SupabaseCompetitionRow);
     },
     async updateCompetition(
       competitionId: string,
       competition: Competition,
     ): Promise<Competition> {
       const { data, error } = await supabase
-        .from(tableName)
-        .update(toSupabaseRow(competition))
+        .from(competitionTableName)
+        .update(toSupabaseCompetitionRow(competition))
         .eq("id", competitionId)
         .select(
           "id,name,slug,organizer,category,regStart,regEnd,eventStart,eventEnd,isPriority,hasGuidebook,links",
@@ -264,11 +474,11 @@ function createSupabaseCompetitionStore(
         throw new Error(`Gagal memperbarui data di Supabase: ${error.message}`);
       }
 
-      return fromSupabaseRow(data as SupabaseCompetitionRow);
+      return fromSupabaseCompetitionRow(data as SupabaseCompetitionRow);
     },
     async deleteCompetition(competitionId: string): Promise<string> {
       const { error } = await supabase
-        .from(tableName)
+        .from(competitionTableName)
         .delete()
         .eq("id", competitionId);
 
@@ -277,6 +487,127 @@ function createSupabaseCompetitionStore(
       }
 
       return competitionId;
+    },
+    async listSubmissions(): Promise<CompetitionSubmission[]> {
+      const { data, error } = await supabase
+        .from(submissionTableName)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw new Error(
+          `Gagal mengambil data pengajuan dari Supabase: ${error.message}`,
+        );
+      }
+
+      return (data ?? []).map((row) =>
+        fromSupabaseSubmissionRow(row as SupabaseSubmissionRow),
+      );
+    },
+    async createSubmission(
+      submission: CompetitionSubmission,
+    ): Promise<CompetitionSubmission> {
+      const { data, error } = await supabase
+        .from(submissionTableName)
+        .insert(toSupabaseSubmissionPayload(submission))
+        .select("*")
+        .single();
+
+      if (error) {
+        throw new Error(`Gagal membuat pengajuan di Supabase: ${error.message}`);
+      }
+
+      return fromSupabaseSubmissionRow(data as SupabaseSubmissionRow);
+    },
+    async approveSubmission(submissionId: string): Promise<Competition> {
+      const { data: rawSubmission, error: submissionError } = await supabase
+        .from(submissionTableName)
+        .select("*")
+        .eq("id", submissionId)
+        .single();
+
+      if (submissionError || !rawSubmission) {
+        throw new Error(`Pengajuan dengan ID ${submissionId} tidak ditemukan.`);
+      }
+
+      const submission = fromSupabaseSubmissionRow(
+        rawSubmission as SupabaseSubmissionRow,
+      );
+
+      if (!canApproveSubmission(submission)) {
+        throw new Error(
+          `Pengajuan dengan ID ${submissionId} belum bisa disetujui karena status saat ini ${submission.status} atau pembayaran belum valid.`,
+        );
+      }
+
+      const competitions = await this.listCompetitions();
+      const newCompetitionId = getNextCompetitionId(competitions);
+      const competition = submissionToCompetition(
+        {
+          ...submission,
+          slug: createSlug(submission.name),
+        },
+        newCompetitionId,
+      );
+
+      const createdCompetition = await this.createCompetition(competition);
+      const nowIso = new Date().toISOString();
+
+      const { error: updateError } = await supabase
+        .from(submissionTableName)
+        .update({
+          status: "approved",
+          reviewed_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("id", submissionId);
+
+      if (updateError) {
+        throw new Error(
+          `Gagal memperbarui status pengajuan: ${updateError.message}`,
+        );
+      }
+
+      return createdCompetition;
+    },
+    async rejectSubmission(submissionId: string): Promise<string> {
+      const { data: rawSubmission, error: submissionError } = await supabase
+        .from(submissionTableName)
+        .select("*")
+        .eq("id", submissionId)
+        .single();
+
+      if (submissionError || !rawSubmission) {
+        throw new Error(`Pengajuan dengan ID ${submissionId} tidak ditemukan.`);
+      }
+
+      const submission = fromSupabaseSubmissionRow(
+        rawSubmission as SupabaseSubmissionRow,
+      );
+
+      if (submission.status !== "pending") {
+        throw new Error(
+          `Pengajuan dengan ID ${submissionId} sudah pernah direview.`,
+        );
+      }
+
+      const nowIso = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from(submissionTableName)
+        .update({
+          status: "rejected",
+          reviewed_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("id", submissionId);
+
+      if (updateError) {
+        throw new Error(
+          `Gagal memperbarui status pengajuan: ${updateError.message}`,
+        );
+      }
+
+      return submissionId;
     },
   };
 }
@@ -289,6 +620,21 @@ export function createCompetitionStore(): CompetitionStore {
   }
 
   return createLocalCompetitionStore();
+}
+
+export function createSubmissionStore(): Pick<
+  CompetitionStore,
+  "listSubmissions" | "createSubmission" | "approveSubmission" | "rejectSubmission" | "source"
+> {
+  const store = createCompetitionStore();
+
+  return {
+    listSubmissions: store.listSubmissions.bind(store),
+    createSubmission: store.createSubmission.bind(store),
+    approveSubmission: store.approveSubmission.bind(store),
+    rejectSubmission: store.rejectSubmission.bind(store),
+    source: store.source,
+  };
 }
 
 export async function readLocalCompetitionsForMigration(): Promise<Competition[]> {
@@ -314,5 +660,5 @@ export function getSupabaseCompetitionTableName(): string {
 export function mapCompetitionToSupabaseRow(
   competition: Competition,
 ): SupabaseCompetitionRow {
-  return toSupabaseRow(competition);
+  return toSupabaseCompetitionRow(competition);
 }

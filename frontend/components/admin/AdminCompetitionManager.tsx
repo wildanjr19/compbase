@@ -9,16 +9,20 @@ import {
   useTransition,
 } from "react";
 import {
+  approveSubmissionAction,
   createCompetitionAction,
   deleteCompetitionAction,
   logoutAdminAction,
+  rejectSubmissionAction,
   updateCompetitionAction,
 } from "@/app/admin/actions";
 import { competitionSchema } from "@/lib/schemas";
 import type {
   Competition,
   CompetitionCategory,
+  CompetitionSubmission,
   CompetitionStatus,
+  SubmissionStatus,
 } from "@/lib/types";
 import {
   formatDate,
@@ -29,7 +33,11 @@ import {
 interface AdminCompetitionManagerProps {
   initialCompetitions: Competition[];
   dataStatusMessage?: string | null;
+  initialSubmissions?: CompetitionSubmission[];
+  submissionStatusMessage?: string | null;
 }
+
+type AdminPanelTab = "competitions" | "submissions";
 
 type EditableCompetitionField =
   | "name"
@@ -81,6 +89,51 @@ function getStatusClassName(status: CompetitionStatus): string {
   }
 
   return "border-rose-300/28 bg-rose-300/12 text-rose-100";
+}
+
+function getSubmissionStatusLabel(status: SubmissionStatus): string {
+  if (status === "approved") {
+    return "Disetujui";
+  }
+
+  if (status === "rejected") {
+    return "Ditolak";
+  }
+
+  return "Menunggu review";
+}
+
+function getSubmissionStatusClassName(status: SubmissionStatus): string {
+  if (status === "approved") {
+    return "border-emerald-300/20 bg-emerald-300/10 text-emerald-100";
+  }
+
+  if (status === "rejected") {
+    return "border-rose-300/20 bg-rose-300/10 text-rose-100";
+  }
+
+  return "border-amber-300/20 bg-amber-300/10 text-amber-100";
+}
+
+function formatDateTime(dateValue: string): string {
+  if (!dateValue.trim()) {
+    return "-";
+  }
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }).format(date);
 }
 
 function createSlug(name: string, id: string): string {
@@ -175,12 +228,20 @@ function serializeCompetitions(competitions: Competition[]): string {
 export function AdminCompetitionManager({
   initialCompetitions,
   dataStatusMessage = null,
+  initialSubmissions = [],
+  submissionStatusMessage = null,
 }: AdminCompetitionManagerProps) {
   const [isMutationPending, startMutationTransition] = useTransition();
+  const [activeTab, setActiveTab] = useState<AdminPanelTab>("competitions");
   const [competitions, setCompetitions] =
     useState<Competition[]>(initialCompetitions);
   const [savedCompetitions, setSavedCompetitions] =
     useState<Competition[]>(initialCompetitions);
+  const [submissions, setSubmissions] =
+    useState<CompetitionSubmission[]>(initialSubmissions);
+  const [submissionMessage, setSubmissionMessage] = useState<string>(
+    "Pengajuan baru akan muncul di tab ini untuk direview.",
+  );
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>(
     initialCompetitions[0]?.id ?? "",
   );
@@ -559,6 +620,100 @@ export function AdminCompetitionManager({
     });
   };
 
+  const handleApproveSubmission = (submissionId: string): void => {
+    startMutationTransition(async () => {
+      const mutationResult = await approveSubmissionAction(submissionId);
+
+      if (!mutationResult.ok || !mutationResult.competition) {
+        setSubmissionMessage(
+          mutationResult.errorMessage ??
+            "Pengajuan belum berhasil disetujui.",
+        );
+        return;
+      }
+
+      const persistedCompetition = mutationResult.competition;
+      const nowIso = new Date().toISOString();
+
+      setSubmissions((currentSubmissions) =>
+        currentSubmissions.map((submission) =>
+          submission.id === submissionId
+            ? {
+                ...submission,
+                status: "approved",
+                reviewedAt: nowIso,
+                updatedAt: nowIso,
+              }
+            : submission,
+        ),
+      );
+
+      setCompetitions((currentCompetitions) => {
+        const hasCompetition = currentCompetitions.some(
+          (competition) => competition.id === persistedCompetition.id,
+        );
+
+        if (hasCompetition) {
+          return currentCompetitions.map((competition) =>
+            competition.id === persistedCompetition.id
+              ? persistedCompetition
+              : competition,
+          );
+        }
+
+        return [persistedCompetition, ...currentCompetitions];
+      });
+
+      setSavedCompetitions((currentCompetitions) => {
+        const hasCompetition = currentCompetitions.some(
+          (competition) => competition.id === persistedCompetition.id,
+        );
+
+        if (hasCompetition) {
+          return currentCompetitions.map((competition) =>
+            competition.id === persistedCompetition.id
+              ? persistedCompetition
+              : competition,
+          );
+        }
+
+        return [persistedCompetition, ...currentCompetitions];
+      });
+
+      setSubmissionMessage("Pengajuan berhasil disetujui dan masuk ke daftar kompetisi.");
+    });
+  };
+
+  const handleRejectSubmission = (submissionId: string): void => {
+    startMutationTransition(async () => {
+      const mutationResult = await rejectSubmissionAction(submissionId);
+
+      if (!mutationResult.ok || !mutationResult.submissionId) {
+        setSubmissionMessage(
+          mutationResult.errorMessage ?? "Pengajuan belum berhasil ditolak.",
+        );
+        return;
+      }
+
+      const nowIso = new Date().toISOString();
+
+      setSubmissions((currentSubmissions) =>
+        currentSubmissions.map((submission) =>
+          submission.id === mutationResult.submissionId
+            ? {
+                ...submission,
+                status: "rejected",
+                reviewedAt: nowIso,
+                updatedAt: nowIso,
+              }
+            : submission,
+        ),
+      );
+
+      setSubmissionMessage("Pengajuan berhasil ditolak.");
+    });
+  };
+
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -607,6 +762,33 @@ export function AdminCompetitionManager({
           </div>
         </header>
 
+        <section className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab("competitions")}
+            className={`inline-flex h-11 items-center justify-center rounded-full border px-5 text-sm font-medium transition ${
+              activeTab === "competitions"
+                ? "border-amber-200/28 bg-amber-200/14 text-amber-100"
+                : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-white/20 hover:bg-white/[0.05]"
+            }`}
+          >
+            Kelola Kompetisi
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("submissions")}
+            className={`inline-flex h-11 items-center justify-center rounded-full border px-5 text-sm font-medium transition ${
+              activeTab === "submissions"
+                ? "border-amber-200/28 bg-amber-200/14 text-amber-100"
+                : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-white/20 hover:bg-white/[0.05]"
+            }`}
+          >
+            Pengajuan Masuk
+          </button>
+        </section>
+
+        {activeTab === "competitions" ? (
+          <>
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-5 py-4 text-center backdrop-blur-md">
             <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
@@ -1330,6 +1512,102 @@ export function AdminCompetitionManager({
             )}
           </section>
         </section>
+          </>
+        ) : (
+          <section className="grid gap-4">
+            {submissionStatusMessage ? (
+              <section className="rounded-[1.25rem] border border-amber-200/14 bg-amber-200/8 px-4 py-3 text-sm text-amber-50 backdrop-blur-md sm:px-5">
+                <p>{submissionStatusMessage}</p>
+              </section>
+            ) : null}
+
+            <section className="rounded-[1.55rem] border border-white/10 bg-[oklch(0.16_0.02_250_/_0.88)] p-5 backdrop-blur-2xl sm:p-6">
+              <div className="flex flex-col gap-3 border-b border-white/8 pb-5">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                  Pengajuan masuk
+                </p>
+                <h2 className="font-brand text-[1.75rem] leading-tight text-zinc-50 sm:text-[2rem]">
+                  Review pengajuan dari publik
+                </h2>
+                <p className="text-sm text-zinc-400">{submissionMessage}</p>
+              </div>
+
+              <div className="mt-5 grid gap-4">
+                {submissions.length === 0 ? (
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-zinc-400">
+                    Belum ada pengajuan yang masuk.
+                  </div>
+                ) : (
+                  submissions.map((submission) => (
+                    <article
+                      key={submission.id}
+                      className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <h3 className="text-base font-semibold text-zinc-100">
+                            {submission.name}
+                          </h3>
+                          <p className="text-sm text-zinc-400">
+                            {submission.organizer} • {submission.category}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            Pengaju: {submission.submitterName} ({submission.submitterEmail})
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            Dikirim: {formatDateTime(submission.createdAt)}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getSubmissionStatusClassName(
+                            submission.status,
+                          )}`}
+                        >
+                          {getSubmissionStatusLabel(submission.status)}
+                        </span>
+                      </div>
+
+                      {submission.notes ? (
+                        <p className="mt-3 rounded-[0.9rem] border border-white/8 bg-black/10 px-3 py-2 text-sm text-zinc-300">
+                          {submission.notes}
+                        </p>
+                      ) : null}
+
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-400">
+                        <span>Deadline: {formatDate(submission.regEnd)}</span>
+                        <span>
+                          Review: {submission.reviewedAt ? formatDateTime(submission.reviewedAt) : "Belum direview"}
+                        </span>
+                      </div>
+
+                      {submission.status === "pending" ? (
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            disabled={isMutationPending}
+                            onClick={() => handleApproveSubmission(submission.id)}
+                            className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-300/22 bg-emerald-300/12 px-4 text-sm font-medium text-emerald-100 transition hover:border-emerald-300/32 hover:bg-emerald-300/18 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            Terima
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isMutationPending}
+                            onClick={() => handleRejectSubmission(submission.id)}
+                            className="inline-flex h-10 items-center justify-center rounded-full border border-rose-300/22 bg-rose-300/12 px-4 text-sm font-medium text-rose-100 transition hover:border-rose-300/32 hover:bg-rose-300/18 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            Tolak
+                          </button>
+                        </div>
+                      ) : null}
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+          </section>
+        )}
       </div>
     </main>
   );

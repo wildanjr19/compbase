@@ -44,3 +44,6 @@ next-env.d.ts
 **/node_modules
 frontend/.next
 backend/dist
+
+# from wildan local
+add-your-competition.md

@@ -11,6 +11,11 @@ import {
   type Competition,
 } from "./competition.ts";
 import { createCompetitionStore } from "./dataStore.ts";
+import {
+  competitionSubmissionSchema,
+  normalizeSubmissionInput,
+  type CompetitionSubmission,
+} from "./submission.ts";
 
 interface CompetitionsResponse {
   ok: true;
@@ -28,6 +33,25 @@ interface CompetitionResponse {
 interface DeleteCompetitionResponse {
   ok: true;
   deletedId: string;
+  source: "supabase" | "local";
+}
+
+interface SubmissionsResponse {
+  ok: true;
+  data: CompetitionSubmission[];
+  total: number;
+  source: "supabase" | "local";
+}
+
+interface SubmissionResponse {
+  ok: true;
+  data: CompetitionSubmission;
+  source: "supabase" | "local";
+}
+
+interface SubmissionActionResponse {
+  ok: true;
+  submissionId: string;
   source: "supabase" | "local";
 }
 
@@ -55,6 +79,10 @@ function getBackendAdminToken(): string | null {
 
 function isWriteMethod(method: string | undefined): boolean {
   return method === "POST" || method === "PUT" || method === "DELETE";
+}
+
+function isPublicSubmissionCreate(pathname: string, method: string | undefined): boolean {
+  return pathname === "/submissions" && method === "POST";
 }
 
 function getHeaderValue(
@@ -92,6 +120,9 @@ function sendJson(
     | CompetitionsResponse
     | CompetitionResponse
     | DeleteCompetitionResponse
+    | SubmissionsResponse
+    | SubmissionResponse
+    | SubmissionActionResponse
     | HealthResponse
     | ErrorResponse,
 ): void {
@@ -153,6 +184,28 @@ function getCompetitionIdFromPath(pathname: string): string | null {
     return decodeURIComponent(match[1]);
   } catch {
     return match[1];
+  }
+}
+
+function getSubmissionActionPath(
+  pathname: string,
+): { submissionId: string; action: "approve" | "reject" } | null {
+  const match = pathname.match(/^\/submissions\/([^/]+)\/(approve|reject)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return {
+      submissionId: decodeURIComponent(match[1]),
+      action: match[2] as "approve" | "reject",
+    };
+  } catch {
+    return {
+      submissionId: match[1],
+      action: match[2] as "approve" | "reject",
+    };
   }
 }
 
@@ -271,6 +324,54 @@ async function handleDeleteCompetition(
   }
 }
 
+async function handleCreateSubmission(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  try {
+    const rawPayload = await readRequestBody(req);
+    const parsedPayload = competitionSubmissionSchema.safeParse(rawPayload);
+
+    if (!parsedPayload.success) {
+      sendJson(res, 422, {
+        ok: false,
+        error: "Validasi data pengajuan kompetisi gagal.",
+        details: getValidationMessages(parsedPayload.error),
+      });
+      return;
+    }
+
+    if (parsedPayload.data.honeypot) {
+      sendJson(res, 400, {
+        ok: false,
+        error: "Pengajuan terdeteksi tidak valid.",
+      });
+      return;
+    }
+
+    const normalizedSubmission = normalizeSubmissionInput(parsedPayload.data);
+    const createdSubmission = await competitionStore.createSubmission(
+      normalizedSubmission,
+    );
+
+    sendJson(res, 201, {
+      ok: true,
+      data: createdSubmission,
+      source: competitionStore.source,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gagal memproses pengajuan kompetisi.";
+
+    sendJson(res, 400, {
+      ok: false,
+      error: message,
+    });
+  }
+}
+
 async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -286,7 +387,11 @@ async function handleRequest(
   const requestUrl = new URL(req.url ?? "/", "http://localhost");
   const pathname = requestUrl.pathname;
 
-  if (isWriteMethod(req.method) && !isAuthorizedForWrite(req)) {
+  if (
+    isWriteMethod(req.method) &&
+    !isPublicSubmissionCreate(pathname, req.method) &&
+    !isAuthorizedForWrite(req)
+  ) {
     sendJson(res, 401, {
       ok: false,
       error: "Akses ditolak. Token admin backend tidak valid.",
@@ -332,6 +437,59 @@ async function handleRequest(
     return;
   }
 
+  if (pathname === "/submissions" && req.method === "POST") {
+    await handleCreateSubmission(req, res);
+    return;
+  }
+
+  if (pathname === "/submissions" && req.method === "GET") {
+    if (!isAuthorizedForWrite(req)) {
+      sendJson(res, 401, {
+        ok: false,
+        error: "Akses ditolak. Token admin backend tidak valid.",
+      });
+      return;
+    }
+
+    const submissions = await competitionStore.listSubmissions();
+
+    sendJson(res, 200, {
+      ok: true,
+      data: submissions,
+      total: submissions.length,
+      source: competitionStore.source,
+    });
+    return;
+  }
+
+  const submissionAction = getSubmissionActionPath(pathname);
+
+  if (submissionAction && req.method === "POST") {
+    if (submissionAction.action === "approve") {
+      const createdCompetition = await competitionStore.approveSubmission(
+        submissionAction.submissionId,
+      );
+
+      sendJson(res, 200, {
+        ok: true,
+        data: createdCompetition,
+        source: competitionStore.source,
+      });
+      return;
+    }
+
+    const rejectedId = await competitionStore.rejectSubmission(
+      submissionAction.submissionId,
+    );
+
+    sendJson(res, 200, {
+      ok: true,
+      submissionId: rejectedId,
+      source: competitionStore.source,
+    });
+    return;
+  }
+
   sendJson(res, 404, {
     ok: false,
     error: "Not Found",
@@ -343,7 +501,7 @@ const server = createServer((req, res) => {
     if (error instanceof ZodError) {
       sendJson(res, 422, {
         ok: false,
-        error: "Validasi data kompetisi gagal.",
+        error: "Validasi data gagal.",
         details: getValidationMessages(error),
       });
       return;
