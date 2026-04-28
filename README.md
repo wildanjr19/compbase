@@ -1,25 +1,5 @@
 # CompBase
 
-CompBase adalah katalog kompetisi yang dirancang untuk membantu mahasiswa dan pegiat data menemukan lomba yang relevan dalam satu tempat. Fokus utamanya ada pada kompetisi statistik, data science, data mining, hackathon, datathon, essay, infografis, dan format serupa yang sering tersebar di banyak kanal.
-
-Platform ini memiliki dua sisi utama. Sisi publik menampilkan daftar kompetisi yang bisa dijelajahi dengan pencarian, filter, urutan, spotlight, dan detail tautan penting. Sisi admin dipakai untuk mengelola data kompetisi agar katalog tetap rapi, konsisten, dan mudah diperbarui saat ada agenda baru atau perubahan jadwal.
-
-Saat ini CompBase sudah mencakup:
-
-- katalog kompetisi publik dengan navigasi yang cepat
-- spotlight untuk kompetisi prioritas
-- detail kompetisi yang merangkum informasi penting
-- panel admin untuk tambah, edit, duplikasi, reset draft, dan hapus data
-- validasi data agar informasi yang tampil tetap lebih terjaga
-
-Halaman utama yang tersedia:
-
-- `/` untuk katalog publik
-- `/admin` untuk akses admin
-- `/admin/panel` untuk pengelolaan kompetisi
-
-CompBase dikembangkan sebagai fondasi katalog kompetisi yang bisa terus diperluas seiring kebutuhan kurasi, pengelolaan data, dan pengalaman admin yang makin matang.
-=======
 CompBase adalah platform katalog kompetisi berbasis web untuk memusatkan informasi lomba dalam satu tempat yang rapi, cepat dicari, dan mudah diperbarui. Proyek ini berfokus pada kebutuhan mahasiswa dan komunitas data untuk menemukan peluang kompetisi tanpa harus berpindah-pindah kanal informasi.
 
 Di sisi publik, pengguna bisa menjelajahi daftar lomba, melihat prioritas kompetisi terdekat, memfilter status pendaftaran, dan membuka detail tautan penting. Di sisi admin, pengelola dapat menjaga kualitas katalog melalui alur tambah, edit, validasi, prioritas, review pengajuan user, dan sinkronisasi data ke backend.
@@ -139,14 +119,7 @@ pnpm dev:backend
 
 ## Future Work
 
-- Role-based access control untuk admin multi-level.
 - Audit log perubahan data di panel admin.
 - Notifikasi otomatis saat status pengajuan berubah.
 - Scheduler sinkronisasi/validasi tanggal kompetisi.
-- Statistik dashboard (tren kategori, organizer aktif, deadline terdekat).
 - Integrasi upload aset (poster/banner) ke object storage.
-
-## Ringkasan
-
-CompBase dibangun sebagai fondasi katalog kompetisi yang terkurasi, mudah dikelola, dan siap ditingkatkan ke skala lebih besar. Fokus utama proyek ini adalah menjaga kualitas data kompetisi sekaligus menghadirkan pengalaman pencarian yang cepat dan jelas untuk pengguna publik.
->>>>>>> theirs
