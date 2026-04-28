@@ -240,7 +240,7 @@ export function getSpotlightCompetitions(
   limit = 3,
 ): Competition[] {
   const active = competitions.filter(
-    (competition) => getCompetitionStatus(competition, now) !== "closed",
+    (competition) => getCompetitionStatus(competition, now) === "open",
   );
 
   const sorted = [...active].sort((left, right) => {

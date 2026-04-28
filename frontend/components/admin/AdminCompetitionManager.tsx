@@ -17,12 +17,13 @@ import {
   updateCompetitionAction,
 } from "@/app/admin/actions";
 import { competitionSchema } from "@/lib/schemas";
-import type {
-  Competition,
-  CompetitionCategory,
-  CompetitionSubmission,
-  CompetitionStatus,
-  SubmissionStatus,
+import {
+  COMPETITION_CATEGORIES,
+  type Competition,
+  type CompetitionCategory,
+  type CompetitionSubmission,
+  type CompetitionStatus,
+  type SubmissionStatus,
 } from "@/lib/types";
 import {
   formatDate,
@@ -55,17 +56,7 @@ type EditableCompetitionLink =
   | "linktree"
   | "website";
 
-const CATEGORY_OPTIONS: CompetitionCategory[] = [
-  "Dashboard",
-  "Data Mining",
-  "Data Science",
-  "Datathon",
-  "Essay",
-  "Hackathon",
-  "Infografis",
-  "LKTI",
-  "Olympiad",
-];
+const CATEGORY_OPTIONS: CompetitionCategory[] = [...COMPETITION_CATEGORIES];
 
 function getStatusLabel(status: CompetitionStatus): string {
   if (status === "coming-soon") {

@@ -1,16 +1,5 @@
 import { z } from "zod";
-
-const COMPETITION_CATEGORIES = [
-  "Dashboard",
-  "Data Mining",
-  "Data Science",
-  "Datathon",
-  "Essay",
-  "Hackathon",
-  "Infografis",
-  "LKTI",
-  "Olympiad",
-] as const;
+import { COMPETITION_CATEGORIES } from "@/lib/types";
 
 const optionalUrlSchema = z.union([
   z.literal(""),

@@ -1,5 +1,45 @@
 [
   {
+    "id": "cmp-005",
+    "name": "Kompetisi Baru Copy",
+    "slug": "kompetisi-baru-copy",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "2026-04-19",
+    "regEnd": "2026-05-05",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
+    "id": "cmp-004",
+    "name": "Kompetisi Baru",
+    "slug": "kompetisi-baru-4",
+    "organizer": "Penyelenggara baru",
+    "category": "Data Science",
+    "regStart": "2026-04-19",
+    "regEnd": "2026-05-05",
+    "eventStart": "",
+    "eventEnd": "",
+    "isPriority": false,
+    "hasGuidebook": false,
+    "links": {
+      "registration": "",
+      "guidebook": "",
+      "instagram": "",
+      "linktree": "",
+      "website": ""
+    }
+  },
+  {
     "id": "cmp-001",
     "name": "DAC Find It!",
     "slug": "dac-find-it",

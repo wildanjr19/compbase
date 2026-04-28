@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
-  COMPETITION_CATEGORIES,
+  competitionCategorySchema,
   competitionLinksSchema,
   createSlug,
   optionalDateSchema,
@@ -26,7 +26,7 @@ export const competitionSubmissionSchema = z
   .object({
     name: z.string().trim().min(1, "Nama kompetisi wajib diisi."),
     organizer: z.string().trim().min(1, "Nama penyelenggara wajib diisi."),
-    category: z.enum(COMPETITION_CATEGORIES),
+    category: competitionCategorySchema,
     regStart: optionalDateSchema,
     regEnd: optionalDateSchema,
     eventStart: optionalDateSchema,
@@ -140,13 +140,14 @@ export function toCompetitionSubmission(
   row: Record<string, unknown>,
 ): CompetitionSubmission {
   const links = (row.links as CompetitionLinks | undefined) ?? {};
+  const category = competitionCategorySchema.parse(String(row.category ?? ""));
 
   return {
     id: String(row.id ?? ""),
     name: String(row.name ?? "").trim(),
     slug: String(row.slug ?? "").trim(),
     organizer: String(row.organizer ?? "").trim(),
-    category: String(row.category ?? "") as CompetitionCategory,
+    category,
     regStart: String(row.reg_start ?? row.regStart ?? ""),
     regEnd: String(row.reg_end ?? row.regEnd ?? ""),
     eventStart: String(row.event_start ?? row.eventStart ?? ""),

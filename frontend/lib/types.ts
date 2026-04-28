@@ -23,16 +23,20 @@ export interface Competition {
 
 export type CompetitionStatus = "coming-soon" | "open" | "closed";
 
-export type CompetitionCategory =
-  | "Data Science"
-  | "Datathon"
-  | "Data Mining"
-  | "Essay"
-  | "Hackathon"
-  | "LKTI"
-  | "Olympiad"
-  | "Infografis"
-  | "Dashboard";
+export const COMPETITION_CATEGORIES = [
+  "Dashboard",
+  "Data Analytics",
+  "Data Mining",
+  "Data Science",
+  "Datathon",
+  "Essay",
+  "Hackathon",
+  "Infographics",
+  "LKTI",
+  "Olympiad",
+] as const;
+
+export type CompetitionCategory = (typeof COMPETITION_CATEGORIES)[number];
 
 export type CompetitionTab = "all" | "coming-soon" | "open";
 

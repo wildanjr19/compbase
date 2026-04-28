@@ -1,10 +1,12 @@
-import type {
-  Competition,
-  CompetitionFilters,
-  CompetitionSort,
-  CompetitionStats,
-  CompetitionStatus,
-  CompetitionTab,
+import {
+  COMPETITION_CATEGORIES,
+  type Competition,
+  type CompetitionCategory,
+  type CompetitionFilters,
+  type CompetitionSort,
+  type CompetitionStats,
+  type CompetitionStatus,
+  type CompetitionTab,
 } from "@/lib/types";
 
 const DEFAULT_FILTERS: CompetitionFilters = {
@@ -15,6 +17,14 @@ const DEFAULT_FILTERS: CompetitionFilters = {
 };
 
 type SearchParamValue = string | string[] | undefined;
+
+const LEGACY_CATEGORY_LABEL_MAP: Record<string, CompetitionCategory> = {
+  infografis: "Infographics",
+};
+
+const CATEGORY_SEARCH_ALIASES: Record<string, string[]> = {
+  infographics: ["Infografis"],
+};
 
 function pickFirstValue(value: SearchParamValue): string {
   if (typeof value === "string") {
@@ -30,6 +40,31 @@ function pickFirstValue(value: SearchParamValue): string {
 
 function normalizeText(text: string): string {
   return text.trim().toLowerCase();
+}
+
+function normalizeCategoryLabel(category: string): string {
+  const trimmedCategory = category.trim();
+
+  if (!trimmedCategory) {
+    return "";
+  }
+
+  const normalizedCategory = normalizeText(trimmedCategory);
+  const mappedCategory = LEGACY_CATEGORY_LABEL_MAP[normalizedCategory];
+
+  if (mappedCategory) {
+    return mappedCategory;
+  }
+
+  return trimmedCategory;
+}
+
+function getCategorySearchTerms(category: string): string[] {
+  const normalizedCategory = normalizeCategoryLabel(category);
+  const aliases =
+    CATEGORY_SEARCH_ALIASES[normalizeText(normalizedCategory)] ?? [];
+
+  return [normalizedCategory, ...aliases];
 }
 
 function isCompetitionTab(value: string): value is CompetitionTab {
@@ -68,7 +103,8 @@ export function parseCompetitionFilters(
   searchParams: Record<string, SearchParamValue>,
 ): CompetitionFilters {
   const query = pickFirstValue(searchParams.q);
-  const category = pickFirstValue(searchParams.category);
+  const rawCategory = pickFirstValue(searchParams.category);
+  const category = normalizeCategoryLabel(rawCategory);
   const tabInput = pickFirstValue(searchParams.tab);
   const sortInput = pickFirstValue(searchParams.sort);
 
@@ -162,11 +198,13 @@ export function filterCompetitions(
   const normalizedQuery = normalizeText(filters.query);
 
   return competitions.filter((competition) => {
+    const competitionCategory = normalizeCategoryLabel(competition.category);
+
     if (normalizedQuery) {
       const matchesQuery = [
         competition.name,
         competition.organizer,
-        competition.category,
+        ...getCategorySearchTerms(competitionCategory),
       ]
         .map((text) => normalizeText(text))
         .some((text) => text.includes(normalizedQuery));
@@ -178,7 +216,7 @@ export function filterCompetitions(
 
     if (
       filters.category !== "all" &&
-      competition.category !== filters.category
+      competitionCategory !== filters.category
     ) {
       return false;
     }
@@ -271,19 +309,12 @@ export function getSpotlightCompetitions(
   limit = 3,
 ): Competition[] {
   const active = competitions.filter(
-    (competition) => getCompetitionStatus(competition, now) !== "closed",
+    (competition) => getCompetitionStatus(competition, now) === "open",
   );
 
   const sorted = [...active].sort((left, right) => {
     if (left.isPriority !== right.isPriority) {
       return left.isPriority ? -1 : 1;
-    }
-
-    const leftStatus = getCompetitionStatus(left, now);
-    const rightStatus = getCompetitionStatus(right, now);
-
-    if (leftStatus !== rightStatus) {
-      return getCompetitionStatusOrder(leftStatus) - getCompetitionStatusOrder(rightStatus);
     }
 
     const leftDays = getDaysUntilDeadline(left.regEnd, now);
@@ -308,9 +339,15 @@ export function getSpotlightCompetitions(
 }
 
 export function getCategoryOptions(competitions: Competition[]): string[] {
-  return Array.from(
-    new Set(competitions.map((competition) => competition.category)),
-  ).sort((left, right) => left.localeCompare(right, "id-ID"));
+  const allCategories = new Set<string>(COMPETITION_CATEGORIES);
+
+  competitions.forEach((competition) => {
+    allCategories.add(normalizeCategoryLabel(competition.category));
+  });
+
+  return Array.from(allCategories).sort((left, right) =>
+    left.localeCompare(right, "id-ID"),
+  );
 }
 
 export function createCompetitionHref(

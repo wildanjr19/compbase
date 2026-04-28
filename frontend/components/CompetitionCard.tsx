@@ -16,69 +16,137 @@ interface CompetitionCardProps {
   onOpenDetail: (competition: Competition) => void;
 }
 
+function getRemainingDaysLabel(daysLeft: number | null): string {
+  if (daysLeft === null) {
+    return "Tanggal belum ditentukan";
+  }
+
+  if (daysLeft >= 0) {
+    return `${daysLeft} hari lagi`;
+  }
+
+  return "Sudah lewat";
+}
+
 export function CompetitionCard({ competition, now, index, onOpenDetail }: CompetitionCardProps) {
   const status = getCompetitionStatus(competition, now);
   const daysLeft = getDaysUntilDeadline(competition.regEnd, now);
   const isLeadCard = index === 0;
+  const competitionOrder = String(index + 1).padStart(2, "0");
+  const daysLeftLabel = getRemainingDaysLabel(daysLeft);
+
+  if (isLeadCard) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenDetail(competition)}
+        className="group soft-panel block w-full overflow-hidden rounded-[1.3rem] border border-line-soft/80 bg-surface-1/26 text-left hover:border-zinc-400/70"
+      >
+        <div className="lg:grid lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
+          <div className="grid gap-4 p-5 md:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <StatusBadge status={status} />
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-400">
+                #{competitionOrder}
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm text-zinc-400">
+                {competition.category} | {competition.organizer}
+              </p>
+              <h3 className="font-brand text-[clamp(1.85rem,3.2vw,2.8rem)] leading-[1.03] text-zinc-50">
+                {competition.name}
+              </h3>
+            </div>
+          </div>
+
+          <div className="grid content-start gap-3 p-5 md:p-6">
+            <dl className="grid gap-2 rounded-[1rem] bg-white/[0.03] p-3.5">
+              <dt className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+                Deadline pendaftaran
+              </dt>
+              <dd className="text-base font-semibold text-zinc-100">
+                {formatDate(competition.regEnd)}
+              </dd>
+              <dd className="text-xs text-zinc-400">{daysLeftLabel}</dd>
+            </dl>
+
+            <dl className="grid gap-2 rounded-[1rem] bg-white/[0.03] p-3.5">
+              <dt className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+                Periode penyisihan
+              </dt>
+              <dd className="text-sm font-medium leading-relaxed text-zinc-100">
+                {formatDateRange(competition.eventStart, competition.eventEnd)}
+              </dd>
+            </dl>
+
+            <div className="flex items-center justify-between pt-2.5">
+              <span className="text-xs uppercase tracking-[0.24em] text-zinc-500">
+                Buka detail
+              </span>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700/70 text-zinc-400 transition group-hover:border-zinc-500 group-hover:text-zinc-200">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M5.25 3L9.25 7L5.25 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </div>
+          </div>
+        </div>
+      </button>
+    );
+  }
 
   return (
     <button
       type="button"
       onClick={() => onOpenDetail(competition)}
-      className={`group soft-panel block w-full overflow-hidden rounded-[1.2rem] border border-line-soft/80 bg-surface-1/24 text-left hover:border-zinc-500/70 ${
-        isLeadCard ? "lg:grid lg:grid-cols-[minmax(0,1.18fr)_0.82fr]" : ""
-      }`}
+      className="group soft-panel block w-full overflow-hidden rounded-[1.2rem] border border-line-soft/80 bg-surface-1/24 text-left hover:border-zinc-500/70"
     >
-      <div className="p-3.5 md:p-4 lg:p-[1.05rem]">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="grid gap-4 p-4 md:p-[1.125rem]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <StatusBadge status={status} />
+          <span className="text-xs uppercase tracking-[0.22em] text-zinc-600">
+            #{competitionOrder}
+          </span>
         </div>
 
-        <div className="mt-2">
+        <div>
           <p className="text-[13px] text-zinc-400">
             {competition.category} | {competition.organizer}
           </p>
-          <h3
-            className={`mt-1 leading-tight text-zinc-50 ${
-              isLeadCard ? "font-brand text-[clamp(1.5rem,3.4vw,2.35rem)]" : "text-[1.15rem] font-semibold"
-            }`}
-          >
+          <h3 className="mt-1.5 text-[1.2rem] font-semibold leading-tight text-zinc-50">
             {competition.name}
           </h3>
         </div>
-      </div>
 
-      <div
-        className={`grid gap-1.5 px-3.5 pb-3.5 pt-0 md:px-4 md:pb-4 lg:px-[1.05rem] lg:pb-[1.05rem] ${
-          isLeadCard ? "lg:self-center lg:pt-[1.05rem]" : "pt-0.5"
-        }`}
-      >
-        <div className="rounded-[0.9rem] bg-black/12 p-2.5 ring-1 ring-white/6">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Deadline pendaftaran</p>
-          <p className="mt-1 text-sm font-medium text-zinc-100">{formatDate(competition.regEnd)}</p>
-          <p className="mt-1 text-[11px] text-zinc-400">
-            {daysLeft === null ? "Belum ditentukan" : daysLeft >= 0 ? `${daysLeft} hari lagi` : "Sudah lewat"}
-          </p>
-        </div>
+        <dl className="grid gap-2.5 pt-1 text-sm text-zinc-300">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+              Deadline
+            </dt>
+            <dd className="text-right font-medium text-zinc-100">
+              {formatDate(competition.regEnd)}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+              Penyisihan
+            </dt>
+            <dd className="text-right font-medium text-zinc-200">
+              {formatDateRange(competition.eventStart, competition.eventEnd)}
+            </dd>
+          </div>
+        </dl>
 
-        <div className="rounded-[0.9rem] bg-black/12 p-2.5 ring-1 ring-white/6">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Penyisihan</p>
-          <p className="mt-1 text-[13px] font-medium leading-relaxed text-zinc-100">
-            {formatDateRange(competition.eventStart, competition.eventEnd)}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 px-0.5 pt-0.5">
-          <span className="text-xs uppercase tracking-[0.28em] text-zinc-600">
-            {String(index + 1).padStart(2, "0")}
-          </span>
-          <span className="inline-flex items-center gap-2 text-xs text-zinc-300">
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-xs uppercase tracking-[0.24em] text-zinc-600">
             Lihat detail
-            <span className="inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-zinc-700/70 text-zinc-400 transition group-hover:border-zinc-500 group-hover:text-zinc-200">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M3 5.25L7 9.25L11 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
+          </span>
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-700/70 text-zinc-400 transition group-hover:border-zinc-500 group-hover:text-zinc-200">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M5.25 3L9.25 7L5.25 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </span>
         </div>
       </div>

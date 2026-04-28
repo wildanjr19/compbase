@@ -1,17 +1,5 @@
 import { z } from "zod";
-import type { CompetitionCategory } from "@/lib/types";
-
-const COMPETITION_CATEGORIES = [
-  "Dashboard",
-  "Data Mining",
-  "Data Science",
-  "Datathon",
-  "Essay",
-  "Hackathon",
-  "Infografis",
-  "LKTI",
-  "Olympiad",
-] as const satisfies readonly CompetitionCategory[];
+import { COMPETITION_CATEGORIES } from "@/lib/types";
 
 const optionalUrlSchema = z.union([
   z.literal(""),

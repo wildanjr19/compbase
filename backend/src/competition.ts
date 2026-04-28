@@ -2,17 +2,22 @@ import { z } from "zod";
 
 export const COMPETITION_CATEGORIES = [
   "Dashboard",
+  "Data Analytics",
   "Data Mining",
   "Data Science",
   "Datathon",
   "Essay",
   "Hackathon",
-  "Infografis",
+  "Infographics",
   "LKTI",
   "Olympiad",
 ] as const;
 
 export type CompetitionCategory = (typeof COMPETITION_CATEGORIES)[number];
+
+const LEGACY_CATEGORY_LABEL_MAP: Record<string, CompetitionCategory> = {
+  infografis: "Infographics",
+};
 
 export interface CompetitionLinks {
   registration?: string;
@@ -61,6 +66,29 @@ export const competitionLinksSchema = z.object({
   website: optionalUrlSchema.optional().default(""),
 });
 
+export function normalizeCompetitionCategoryLabel(category: string): string {
+  const trimmedCategory = category.trim();
+
+  if (!trimmedCategory) {
+    return "";
+  }
+
+  const normalizedCategory = trimmedCategory.toLowerCase();
+  const mappedCategory = LEGACY_CATEGORY_LABEL_MAP[normalizedCategory];
+
+  if (mappedCategory) {
+    return mappedCategory;
+  }
+
+  return trimmedCategory;
+}
+
+export const competitionCategorySchema = z
+  .string()
+  .trim()
+  .transform((category) => normalizeCompetitionCategoryLabel(category))
+  .pipe(z.enum(COMPETITION_CATEGORIES));
+
 function isDateString(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -71,7 +99,7 @@ export const competitionSchema = z
     name: z.string().trim().min(1, "Nama kompetisi wajib diisi."),
     slug: z.string().trim().min(1, "Slug kompetisi wajib diisi."),
     organizer: z.string().trim().min(1, "Nama penyelenggara wajib diisi."),
-    category: z.enum(COMPETITION_CATEGORIES),
+    category: competitionCategorySchema,
     regStart: optionalDateSchema,
     regEnd: optionalDateSchema,
     eventStart: optionalDateSchema,

@@ -1,28 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactElement } from "react";
 import {
   submitCompetitionProposalAction,
   type SubmissionFormState,
 } from "@/app/ajukan-kompetisi/actions";
+import { COMPETITION_CATEGORIES } from "@/lib/types";
 
 const INITIAL_FORM_STATE: SubmissionFormState = {
   errorMessage: null,
 };
 
-const CATEGORY_OPTIONS = [
-  "Dashboard",
-  "Data Mining",
-  "Data Science",
-  "Datathon",
-  "Essay",
-  "Hackathon",
-  "Infografis",
-  "LKTI",
-  "Olympiad",
-] as const;
-
-export function SubmitForm(): JSX.Element {
+export function SubmitForm(): ReactElement {
   const [state, formAction, isPending] = useActionState<SubmissionFormState, FormData>(
     submitCompetitionProposalAction,
     INITIAL_FORM_STATE,
@@ -67,7 +56,7 @@ export function SubmitForm(): JSX.Element {
             defaultValue="Data Science"
             className="h-11 rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 text-zinc-100 outline-none ring-amber-200/30 focus:ring [&>option]:bg-zinc-900"
           >
-            {CATEGORY_OPTIONS.map((category) => (
+            {COMPETITION_CATEGORIES.map((category) => (
               <option key={category} value={category}>
                 {category}
               </option>

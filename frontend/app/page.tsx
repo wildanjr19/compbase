@@ -73,17 +73,17 @@ export default async function Home({ searchParams }: HomePageProps) {
         <section className="soft-panel rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-zinc-100">
+              <p className="text-base font-semibold text-zinc-100 sm:text-[1.05rem]">
                 Punya kompetisi yang belum ada di CompBase?
               </p>
-              <p className="mt-1 text-sm text-zinc-400">
+              <p className="mt-1 text-base text-zinc-400">
                 Ajukan kompetisimu untuk direview admin sebelum masuk katalog publik.
               </p>
             </div>
 
             <Link
               href="/ajukan-kompetisi"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-amber-200/20 bg-amber-200/12 px-4 text-sm font-semibold text-amber-100 transition hover:border-amber-200/30 hover:bg-amber-200/20"
+              className="inline-flex h-12 items-center justify-center rounded-full border border-amber-200/20 bg-amber-200/12 px-5 text-base font-semibold text-amber-100 transition hover:border-amber-200/30 hover:bg-amber-200/20"
             >
               Mau Tambah Kompetisimu?
             </Link>

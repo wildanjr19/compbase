@@ -51,60 +51,60 @@ export function SpotlightSection({
         <button
           type="button"
           onClick={() => onOpenDetail(primaryCompetition)}
-          className="group overflow-hidden rounded-[1.2rem] border border-white/6 bg-white/[0.026] text-left hover:border-violet-200/16"
+          className="group overflow-hidden rounded-[1.2rem] border border-white/8 bg-white/[0.03] text-left hover:border-violet-200/18"
         >
-          <div className="grid gap-4 p-4 md:p-[1.125rem] lg:grid-cols-[1.1fr_0.9fr] lg:p-5">
-            <div className="space-y-3">
+          <div className="grid gap-5 p-5 md:p-6 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)]">
+            <div className="grid gap-4">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={primaryStatus} />
               </div>
 
-              <div>
+              <div className="space-y-3">
                 <p className="text-sm text-zinc-400">
                   {primaryCompetition.category} | {primaryCompetition.organizer}
                 </p>
-                <h3 className="mt-3 max-w-xl font-brand text-[clamp(1.85rem,4vw,3.2rem)] leading-[1] text-zinc-50">
+                <h3 className="max-w-xl font-brand text-[clamp(1.95rem,4vw,3.15rem)] leading-[1.02] text-zinc-50">
                   {primaryCompetition.name}
                 </h3>
               </div>
             </div>
 
-            <div className="grid gap-2.5 self-start rounded-[1rem] border border-white/7 bg-black/8 p-3.5">
-              <div className="border-b border-white/6 pb-3">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+            <div className="grid gap-3 self-start rounded-[1.05rem] bg-black/14 p-4">
+              <dl className="grid gap-2">
+                <dt className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                   Deadline pendaftaran
-                </p>
-                <p className="mt-2 text-xl font-semibold text-zinc-100">
+                </dt>
+                <dd className="text-xl font-semibold text-zinc-100">
                   {formatDate(primaryCompetition.regEnd)}
-                </p>
-              </div>
-              <div className="border-b border-white/6 pb-3">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                </dd>
+              </dl>
+              <dl className="grid gap-2">
+                <dt className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                   Penyisihan
-                </p>
-                <p className="mt-2 text-sm font-medium leading-relaxed text-zinc-200">
+                </dt>
+                <dd className="text-sm font-medium leading-relaxed text-zinc-200">
                   {formatDate(primaryCompetition.eventStart)} sampai{" "}
                   {formatDate(primaryCompetition.eventEnd)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                </dd>
+              </dl>
+              <dl className="grid gap-2">
+                <dt className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                   Sisa waktu
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-accent-gold/95">
+                </dt>
+                <dd className="text-3xl font-semibold text-accent-gold/95">
                   {primaryDaysLeft === null
                     ? "Menunggu jadwal"
                     : primaryDaysLeft >= 0
                       ? `${primaryDaysLeft} hari`
                       : "Terlambat"}
-                </p>
-                <p className="mt-2 text-sm text-zinc-300">
+                </dd>
+                <dd className="text-sm text-zinc-300">
                   Pas buat kamu yang lagi cari opsi paling dekat.
-                </p>
-              </div>
+                </dd>
+              </dl>
             </div>
 
-            <div className="flex items-center justify-end gap-2 lg:col-span-2">
+            <div className="flex items-center justify-end gap-2 pt-3 lg:col-span-2">
               <span className="text-sm text-zinc-300">Lihat detail</span>
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700/70 text-zinc-400 transition group-hover:border-zinc-500 group-hover:text-zinc-200">
                 <svg
@@ -150,7 +150,7 @@ export function SpotlightSection({
                     {competition.category} | {competition.organizer}
                   </p>
 
-                  <div className="mt-3 grid gap-2.5 border-t border-white/6 pt-3 text-sm text-zinc-300">
+                  <div className="mt-3 grid gap-2.5 pt-3 text-sm text-zinc-300">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xs uppercase tracking-[0.2em] text-zinc-500">
                         Deadline pendaftaran
