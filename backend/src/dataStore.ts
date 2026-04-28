@@ -28,6 +28,7 @@ export interface CompetitionStore {
   createSubmission(submission: CompetitionSubmission): Promise<CompetitionSubmission>;
   approveSubmission(submissionId: string): Promise<Competition>;
   rejectSubmission(submissionId: string): Promise<string>;
+  deleteSubmission(submissionId: string): Promise<string>;
   source: "supabase" | "local";
 }
 
@@ -84,6 +85,7 @@ const defaultLocalSubmissionsPath = resolve(
 );
 const competitionArraySchema = z.array(competitionSchema);
 const submissionArraySchema = z.array(z.record(z.string(), z.unknown()));
+const MAX_PRIORITY_COMPETITIONS = 3;
 
 function getSupabaseUrl(): string | null {
   const value = process.env.SUPABASE_URL?.trim();
@@ -281,6 +283,27 @@ function canApproveSubmission(submission: CompetitionSubmission): boolean {
   );
 }
 
+function ensurePriorityLimit(
+  competitions: Competition[],
+  candidate: Competition,
+  currentCompetitionId?: string,
+): void {
+  if (!candidate.isPriority) {
+    return;
+  }
+
+  const activePriorityCount = competitions.filter(
+    (competition) =>
+      competition.isPriority && competition.id !== currentCompetitionId,
+  ).length;
+
+  if (activePriorityCount >= MAX_PRIORITY_COMPETITIONS) {
+    throw new Error(
+      `Maksimal ${MAX_PRIORITY_COMPETITIONS} kompetisi dapat ditandai sebagai prioritas.`,
+    );
+  }
+}
+
 function createLocalCompetitionStore(): CompetitionStore {
   return {
     source: "local",
@@ -296,6 +319,8 @@ function createLocalCompetitionStore(): CompetitionStore {
       if (existingCompetition) {
         throw new Error(`Kompetisi dengan ID ${competition.id} sudah ada.`);
       }
+
+      ensurePriorityLimit(competitions, competition);
 
       const nextCompetitions = [competition, ...competitions];
       await writeLocalCompetitions(nextCompetitions);
@@ -313,6 +338,8 @@ function createLocalCompetitionStore(): CompetitionStore {
       if (competitionIndex === -1) {
         throw new Error(`Kompetisi dengan ID ${competitionId} tidak ditemukan.`);
       }
+
+      ensurePriorityLimit(competitions, competition, competitionId);
 
       const nextCompetitions = [...competitions];
       nextCompetitions[competitionIndex] = competition;
@@ -418,6 +445,19 @@ function createLocalCompetitionStore(): CompetitionStore {
       await writeLocalSubmissions(nextSubmissions);
       return submissionId;
     },
+    async deleteSubmission(submissionId: string): Promise<string> {
+      const submissions = await readLocalSubmissions();
+      const nextSubmissions = submissions.filter(
+        (submission) => submission.id !== submissionId,
+      );
+
+      if (nextSubmissions.length === submissions.length) {
+        throw new Error(`Pengajuan dengan ID ${submissionId} tidak ditemukan.`);
+      }
+
+      await writeLocalSubmissions(nextSubmissions);
+      return submissionId;
+    },
   };
 }
 
@@ -443,6 +483,9 @@ function createSupabaseCompetitionStore(supabase: SupabaseClient): CompetitionSt
       );
     },
     async createCompetition(competition: Competition): Promise<Competition> {
+      const competitions = await this.listCompetitions();
+      ensurePriorityLimit(competitions, competition);
+
       const { data, error } = await supabase
         .from(competitionTableName)
         .insert(toSupabaseCompetitionRow(competition))
@@ -461,6 +504,9 @@ function createSupabaseCompetitionStore(supabase: SupabaseClient): CompetitionSt
       competitionId: string,
       competition: Competition,
     ): Promise<Competition> {
+      const competitions = await this.listCompetitions();
+      ensurePriorityLimit(competitions, competition, competitionId);
+
       const { data, error } = await supabase
         .from(competitionTableName)
         .update(toSupabaseCompetitionRow(competition))
@@ -609,6 +655,18 @@ function createSupabaseCompetitionStore(supabase: SupabaseClient): CompetitionSt
 
       return submissionId;
     },
+    async deleteSubmission(submissionId: string): Promise<string> {
+      const { error } = await supabase
+        .from(submissionTableName)
+        .delete()
+        .eq("id", submissionId);
+
+      if (error) {
+        throw new Error(`Gagal menghapus pengajuan di Supabase: ${error.message}`);
+      }
+
+      return submissionId;
+    },
   };
 }
 
@@ -624,7 +682,7 @@ export function createCompetitionStore(): CompetitionStore {
 
 export function createSubmissionStore(): Pick<
   CompetitionStore,
-  "listSubmissions" | "createSubmission" | "approveSubmission" | "rejectSubmission" | "source"
+  "listSubmissions" | "createSubmission" | "approveSubmission" | "rejectSubmission" | "deleteSubmission" | "source"
 > {
   const store = createCompetitionStore();
 
@@ -633,6 +691,7 @@ export function createSubmissionStore(): Pick<
     createSubmission: store.createSubmission.bind(store),
     approveSubmission: store.approveSubmission.bind(store),
     rejectSubmission: store.rejectSubmission.bind(store),
+    deleteSubmission: store.deleteSubmission.bind(store),
     source: store.source,
   };
 }

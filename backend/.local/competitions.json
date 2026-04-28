@@ -9,7 +9,7 @@
     "regEnd": "2026-05-05",
     "eventStart": "",
     "eventEnd": "",
-    "isPriority": false,
+    "isPriority": true,
     "hasGuidebook": false,
     "links": {
       "registration": "",
@@ -29,7 +29,7 @@
     "regEnd": "2026-05-05",
     "eventStart": "",
     "eventEnd": "",
-    "isPriority": false,
+    "isPriority": true,
     "hasGuidebook": false,
     "links": {
       "registration": "",

@@ -1,10 +1,11 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { publicSubmissionSchema } from "@/app/ajukan-kompetisi/schema";
 import { createCompetitionSubmissionInBackend } from "@/lib/utils/submissions";
 
 export interface SubmissionFormState {
+  ok: boolean;
+  successMessage: string | null;
   errorMessage: string | null;
 }
 
@@ -51,15 +52,24 @@ export async function submitCompetitionProposalAction(
     const firstIssue = parsedResult.error.issues[0];
 
     return {
+      ok: false,
+      successMessage: null,
       errorMessage: firstIssue?.message ?? "Data pengajuan belum valid.",
     };
   }
 
   try {
     await createCompetitionSubmissionInBackend(parsedResult.data);
-    redirect("/ajukan-kompetisi?status=terkirim");
+    return {
+      ok: true,
+      successMessage:
+        "Pengajuan berhasil dikirim. Tim admin akan meninjau data Anda sebelum dipublikasikan.",
+      errorMessage: null,
+    };
   } catch (error) {
     return {
+      ok: false,
+      successMessage: null,
       errorMessage: getUnknownErrorMessage(error),
     };
   }

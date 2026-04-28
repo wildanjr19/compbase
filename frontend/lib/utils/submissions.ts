@@ -25,6 +25,11 @@ interface SubmissionRejectApiPayload {
   submissionId: string;
 }
 
+interface SubmissionDeleteApiPayload {
+  ok: boolean;
+  deletedId: string;
+}
+
 export interface SubmissionListResult {
   submissions: CompetitionSubmission[];
   source: "backend" | "unavailable";
@@ -181,6 +186,18 @@ function isSubmissionRejectApiPayload(
   return payload.ok === true && typeof payload.submissionId === "string";
 }
 
+function isSubmissionDeleteApiPayload(
+  value: unknown,
+): value is SubmissionDeleteApiPayload {
+  const payload = toRecord(value);
+
+  if (!payload) {
+    return false;
+  }
+
+  return payload.ok === true && typeof payload.deletedId === "string";
+}
+
 function getBackendErrorMessage(payload: unknown): string | null {
   const responsePayload = toRecord(payload);
 
@@ -335,4 +352,34 @@ export async function rejectSubmissionInBackend(
   }
 
   return payload.submissionId;
+}
+
+export async function deleteSubmissionFromBackend(
+  submissionId: string,
+): Promise<string> {
+  const baseUrl = getBackendBaseUrl();
+
+  const response = await fetch(
+    `${baseUrl}/submissions/${encodeURIComponent(submissionId)}`,
+    {
+      method: "DELETE",
+      cache: "no-store",
+      headers: getMutationHeaders(false),
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+    },
+  );
+
+  const payload = await parseResponsePayload(response);
+
+  if (!response.ok) {
+    throw new Error(
+      getBackendErrorMessage(payload) ?? "Backend gagal menghapus pengajuan.",
+    );
+  }
+
+  if (!isSubmissionDeleteApiPayload(payload)) {
+    throw new Error("Format respons backend untuk penghapusan pengajuan belum sesuai.");
+  }
+
+  return payload.deletedId;
 }

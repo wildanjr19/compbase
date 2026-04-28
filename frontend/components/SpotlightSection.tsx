@@ -38,11 +38,11 @@ export function SpotlightSection({
       <div className="flex flex-wrap items-end justify-between gap-3 text-center sm:text-left">
         <div className="w-full sm:w-auto">
           <p className="section-kicker">Pilihan cepat</p>
-          <h2 className="mt-2 font-brand text-3xl text-zinc-50 sm:text-[2.2rem]">
+          <h2 className="mt-2 font-brand text-[1.85rem] text-zinc-50 sm:text-[2.05rem]">
             Deadline pendaftaran
           </h2>
         </div>
-        <p className="mx-auto max-w-sm text-base leading-relaxed text-zinc-400 sm:mx-0">
+        <p className="mx-auto max-w-sm text-[0.95rem] leading-relaxed text-zinc-400 sm:mx-0">
           Kalau mau mulai dari yang paling urgent, cek bagian ini dulu.
         </p>
       </div>
@@ -51,7 +51,7 @@ export function SpotlightSection({
         <button
           type="button"
           onClick={() => onOpenDetail(primaryCompetition)}
-          className="group overflow-hidden rounded-[1.2rem] border border-white/8 bg-white/[0.03] text-left hover:border-violet-200/18"
+          className="motion-surface group overflow-hidden rounded-[1.2rem] border border-white/8 bg-white/[0.03] text-left hover:border-violet-200/18"
         >
           <div className="grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)]">
             <div className="grid gap-5">
@@ -60,10 +60,10 @@ export function SpotlightSection({
               </div>
 
               <div className="space-y-3.5">
-                <p className="text-base leading-relaxed text-zinc-400">
+                <p className="text-[0.95rem] leading-relaxed text-zinc-400">
                   {primaryCompetition.category} | {primaryCompetition.organizer}
                 </p>
-                <h3 className="max-w-xl font-brand text-[clamp(1.95rem,4vw,3.15rem)] leading-[1.02] text-zinc-50">
+                <h3 className="max-w-xl font-brand text-[clamp(1.85rem,3.9vw,2.95rem)] leading-[1.02] text-zinc-50">
                   {primaryCompetition.name}
                 </h3>
               </div>
@@ -74,7 +74,7 @@ export function SpotlightSection({
                 <dt className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                   Deadline pendaftaran
                 </dt>
-                <dd className="text-[1.4rem] font-semibold leading-tight text-zinc-100">
+                <dd className="text-[1.32rem] font-semibold leading-tight text-zinc-100">
                   {formatDate(primaryCompetition.regEnd)}
                 </dd>
               </dl>
@@ -82,7 +82,7 @@ export function SpotlightSection({
                 <dt className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                   Penyisihan
                 </dt>
-                <dd className="text-[1.05rem] font-medium leading-relaxed text-zinc-200">
+                <dd className="text-[1.01rem] font-medium leading-relaxed text-zinc-200">
                   {formatDate(primaryCompetition.eventStart)} sampai{" "}
                   {formatDate(primaryCompetition.eventEnd)}
                 </dd>
@@ -91,14 +91,14 @@ export function SpotlightSection({
                 <dt className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                   Sisa waktu
                 </dt>
-                <dd className="text-3xl font-semibold text-accent-gold/95">
+                <dd className="text-[1.78rem] font-semibold text-accent-gold/95">
                   {primaryDaysLeft === null
                     ? "Menunggu jadwal"
                     : primaryDaysLeft >= 0
                       ? `${primaryDaysLeft} hari`
                       : "Terlambat"}
                 </dd>
-                <dd className="text-base leading-relaxed text-zinc-300">
+                <dd className="text-[0.95rem] leading-relaxed text-zinc-300">
                   Pas buat kamu yang lagi cari opsi paling dekat.
                 </dd>
               </dl>
@@ -137,25 +137,25 @@ export function SpotlightSection({
                 <button
                   type="button"
                   onClick={() => onOpenDetail(competition)}
-                  className="block w-full rounded-[1.1rem] border border-white/6 bg-white/[0.022] p-4 text-left hover:border-violet-200/16"
+                  className="motion-surface block w-full rounded-[1.1rem] border border-white/6 bg-white/[0.022] p-4 text-left hover:border-violet-200/16"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={status} />
                   </div>
 
-                  <h3 className="mt-4 text-[1.35rem] font-semibold leading-tight text-zinc-50">
+                  <h3 className="mt-4 text-[1.28rem] font-semibold leading-tight text-zinc-50">
                     {competition.name}
                   </h3>
-                  <p className="mt-1.5 text-[1.02rem] leading-relaxed text-zinc-300">
+                  <p className="mt-1.5 text-[0.98rem] leading-relaxed text-zinc-300">
                     {competition.category} | {competition.organizer}
                   </p>
 
-                  <div className="mt-3.5 grid gap-3 pt-3 text-base text-zinc-300">
+                  <div className="mt-3.5 grid gap-3 pt-3 text-[0.95rem] text-zinc-300">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xs uppercase tracking-[0.2em] text-zinc-500">
                         Deadline pendaftaran
                       </span>
-                      <span className="text-[1.03rem] font-semibold leading-tight text-zinc-100">
+                      <span className="text-[1rem] font-semibold leading-tight text-zinc-100">
                         {formatDate(competition.regEnd)}
                       </span>
                     </div>

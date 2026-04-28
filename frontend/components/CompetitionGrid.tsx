@@ -34,9 +34,9 @@ export function CompetitionGrid({
       <div className="flex flex-wrap items-end justify-between gap-3 text-center sm:text-left">
         <div className="w-full sm:w-auto">
           <p className="section-kicker">Daftar lomba</p>
-          <h2 className="mt-2 font-brand text-3xl text-zinc-50 sm:text-4xl">Semua yang lagi tersedia</h2>
+          <h2 className="mt-2 font-brand text-[1.85rem] text-zinc-50 sm:text-[2.15rem]">Semua yang lagi tersedia</h2>
         </div>
-        <p className="mx-auto max-w-sm text-base leading-relaxed text-zinc-300 sm:mx-0">
+        <p className="mx-auto max-w-sm text-[0.95rem] leading-relaxed text-zinc-300 sm:mx-0">
           Menampilkan {competitions.length} dari {totalCompetitions} lomba yang bisa kamu cek sekarang.
         </p>
       </div>
