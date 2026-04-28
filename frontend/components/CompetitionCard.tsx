@@ -40,15 +40,15 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
       onClick={() => onOpenDetail(competition)}
       className="motion-surface group soft-panel block w-full overflow-hidden rounded-[1.2rem] border border-line-soft/80 bg-surface-1/24 text-left transition-colors hover:border-zinc-500/70"
     >
-      <div className="grid gap-[1.125rem] p-4 md:p-5">
+      <div className="grid gap-4 p-3.5 md:p-[1.125rem]">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <StatusBadge status={status} />
+          <StatusBadge status={status} compact />
           <span className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-zinc-400">
             #{competitionOrder}
           </span>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <p className="text-[0.98rem] leading-relaxed text-zinc-300">
             {competition.category} | {competition.organizer}
           </p>
@@ -57,7 +57,7 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
           </h3>
         </div>
 
-        <dl className="grid gap-3.5 pt-1">
+        <dl className="grid gap-3 pt-0.5">
           <div className="grid gap-1">
             <dt className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
               Deadline pendaftaran
@@ -74,7 +74,7 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
               {formatDateRange(competition.eventStart, competition.eventEnd)}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex items-center justify-between gap-3 pt-0.5">
             <dt className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
               Sisa waktu
             </dt>
@@ -84,7 +84,7 @@ export function CompetitionCard({ competition, now, index, onOpenDetail }: Compe
           </div>
         </dl>
 
-        <div className="flex items-center justify-between pt-0.5">
+        <div className="flex items-center justify-between pt-0">
           <span className="text-[0.95rem] font-medium text-zinc-300">
             Lihat detail
           </span>

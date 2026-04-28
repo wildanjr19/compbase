@@ -53,13 +53,13 @@ export function SpotlightSection({
           onClick={() => onOpenDetail(primaryCompetition)}
           className="motion-surface group overflow-hidden rounded-[1.2rem] border border-white/8 bg-white/[0.03] text-left hover:border-violet-200/18"
         >
-          <div className="grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)]">
-            <div className="grid gap-5">
+          <div className="grid gap-3 px-5 py-3 md:px-[1.3rem] md:py-3 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)]">
+            <div className="grid gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={primaryStatus} />
+                <StatusBadge status={primaryStatus} compact />
               </div>
 
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 <p className="text-[0.95rem] leading-relaxed text-zinc-400">
                   {primaryCompetition.category} | {primaryCompetition.organizer}
                 </p>
@@ -69,7 +69,7 @@ export function SpotlightSection({
               </div>
             </div>
 
-            <div className="grid gap-4 self-start rounded-[1.05rem] bg-black/14 p-5">
+            <div className="grid gap-2 self-start rounded-[1.05rem] bg-black/14 px-4 py-2.5">
               <dl className="grid gap-1.5">
                 <dt className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
                   Deadline pendaftaran
@@ -98,13 +98,10 @@ export function SpotlightSection({
                       ? `${primaryDaysLeft} hari`
                       : "Terlambat"}
                 </dd>
-                <dd className="text-[0.95rem] leading-relaxed text-zinc-300">
-                  Pas buat kamu yang lagi cari opsi paling dekat.
-                </dd>
               </dl>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 lg:col-span-2">
+            <div className="flex items-center justify-end gap-2 pt-1 lg:col-span-2">
               <span className="text-sm text-zinc-300">Lihat detail</span>
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700/70 text-zinc-400 transition group-hover:border-zinc-500 group-hover:text-zinc-200">
                 <svg
@@ -137,20 +134,20 @@ export function SpotlightSection({
                 <button
                   type="button"
                   onClick={() => onOpenDetail(competition)}
-                  className="motion-surface block w-full rounded-[1.1rem] border border-white/6 bg-white/[0.022] p-4 text-left hover:border-violet-200/16"
+                  className="motion-surface block w-full rounded-[1.1rem] border border-white/6 bg-white/[0.022] px-4 py-2.5 text-left hover:border-violet-200/16"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={status} />
+                    <StatusBadge status={status} compact />
                   </div>
 
-                  <h3 className="mt-4 text-[1.28rem] font-semibold leading-tight text-zinc-50">
+                  <h3 className="mt-2 text-[1.28rem] font-semibold leading-tight text-zinc-50">
                     {competition.name}
                   </h3>
                   <p className="mt-1.5 text-[0.98rem] leading-relaxed text-zinc-300">
                     {competition.category} | {competition.organizer}
                   </p>
 
-                  <div className="mt-3.5 grid gap-3 pt-3 text-[0.95rem] text-zinc-300">
+                  <div className="mt-2 grid gap-1.5 pt-1.5 text-[0.95rem] text-zinc-300">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xs uppercase tracking-[0.2em] text-zinc-500">
                         Deadline pendaftaran
