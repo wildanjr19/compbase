@@ -828,7 +828,7 @@ export function AdminCompetitionManager({
                 ? { maxHeight: `${syncedListMaxHeight}px` }
                 : undefined
             }
-            className="flex max-h-[50vh] min-h-0 flex-col rounded-[1.55rem] border border-white/10 bg-[oklch(0.16_0.02_250_/_0.88)] p-5 backdrop-blur-2xl sm:p-6"
+            className="flex max-h-[70vh] min-h-0 flex-col rounded-[1.55rem] border border-white/10 bg-[oklch(0.16_0.02_250_/_0.88)] p-5 backdrop-blur-2xl xl:max-h-none sm:p-6"
           >
             <div className="flex flex-col gap-4 border-b border-white/8 pb-5">
               <div className="flex flex-wrap items-start justify-between gap-3">

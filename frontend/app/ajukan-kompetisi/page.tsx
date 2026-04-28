@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import type { ReactElement } from "react";
 import { SubmitForm } from "@/app/ajukan-kompetisi/SubmitForm";
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ function pickFirstValue(value: string | string[] | undefined): string {
 
 export default async function SubmissionPage({
   searchParams,
-}: SubmissionPageProps): Promise<JSX.Element> {
+}: SubmissionPageProps): Promise<ReactElement> {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const status = pickFirstValue(resolvedSearchParams.status);
 
