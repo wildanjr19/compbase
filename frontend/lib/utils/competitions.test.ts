@@ -3,6 +3,8 @@ import type { Competition } from "@/lib/types";
 import {
   clampCompetitionPage,
   filterCompetitions,
+  getCompetitionStatus,
+  getDaysUntilDeadline,
   parseCompetitionFilters,
   sortCompetitions,
 } from "@/lib/utils/competitions";
@@ -114,5 +116,26 @@ describe("sortCompetitions + filterCompetitions", () => {
 
     expect(filtered).toHaveLength(1);
     expect(filtered[0]?.id).toBe("cmp-001");
+  });
+});
+
+describe("status dan deadline berbasis Asia/Jakarta", () => {
+  it("tetap coming-soon jika regStart belum masuk tanggal pendaftaran", () => {
+    const now = new Date("2026-05-09T16:00:00.000Z");
+    const competition = createCompetition({
+      id: "cmp-100",
+      name: "Kompetisi Besok",
+      regStart: "2026-05-10",
+      regEnd: "2026-05-20",
+    });
+
+    expect(getCompetitionStatus(competition, now)).toBe("coming-soon");
+  });
+
+  it("menggunakan pergantian hari WIB untuk hitung sisa waktu", () => {
+    const now = new Date("2026-05-09T17:30:00.000Z");
+    const daysLeft = getDaysUntilDeadline("2026-05-10", now);
+
+    expect(daysLeft).toBe(0);
   });
 });

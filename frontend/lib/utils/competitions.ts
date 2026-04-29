@@ -26,6 +26,7 @@ const LEGACY_CATEGORY_LABEL_MAP: Record<string, CompetitionCategory> = {
 const CATEGORY_SEARCH_ALIASES: Record<string, string[]> = {
   infographics: ["Infografis"],
 };
+const COMPETITION_TIMEZONE = "Asia/Jakarta";
 
 function pickFirstValue(value: SearchParamValue): string {
   if (typeof value === "string") {
@@ -105,10 +106,32 @@ function hasDate(dateInput: string): boolean {
   return Boolean(dateInput?.trim());
 }
 
-function toToday(now: Date): Date {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
+function parseDateToUtcTimestamp(dateInput: string): number {
+  const [yearInput, monthInput, dayInput] = dateInput.split("-");
+  const year = Number.parseInt(yearInput ?? "", 10);
+  const month = Number.parseInt(monthInput ?? "", 10);
+  const day = Number.parseInt(dayInput ?? "", 10);
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return Number.NaN;
+  }
+
+  return Date.UTC(year, month - 1, day);
+}
+
+function getTodayDateInCompetitionTimezone(now: Date): string {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: COMPETITION_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const dateParts = formatter.formatToParts(now);
+  const year = dateParts.find((part) => part.type === "year")?.value ?? "";
+  const month = dateParts.find((part) => part.type === "month")?.value ?? "";
+  const day = dateParts.find((part) => part.type === "day")?.value ?? "";
+
+  return `${year}-${month}-${day}`;
 }
 
 export function parseCompetitionFilters(
@@ -142,9 +165,15 @@ export function getDaysUntilDeadline(regEnd: string, now: Date): number | null {
     return null;
   }
 
-  const deadline = toDate(regEnd);
-  const today = toToday(now);
-  const difference = deadline.getTime() - today.getTime();
+  const todayDate = getTodayDateInCompetitionTimezone(now);
+  const deadlineTimestamp = parseDateToUtcTimestamp(regEnd);
+  const todayTimestamp = parseDateToUtcTimestamp(todayDate);
+
+  if (!Number.isFinite(deadlineTimestamp) || !Number.isFinite(todayTimestamp)) {
+    return null;
+  }
+
+  const difference = deadlineTimestamp - todayTimestamp;
 
   return Math.ceil(difference / (24 * 60 * 60 * 1000));
 }
@@ -157,10 +186,9 @@ export function getCompetitionStatus(
     return "coming-soon";
   }
 
-  const registrationStartDate = toDate(competition.regStart);
-  const today = toToday(now);
+  const todayDate = getTodayDateInCompetitionTimezone(now);
 
-  if (registrationStartDate.getTime() > today.getTime()) {
+  if (competition.regStart > todayDate) {
     return "coming-soon";
   }
 
@@ -186,7 +214,7 @@ export function formatDate(dateInput: string): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
-    timeZone: "UTC",
+    timeZone: COMPETITION_TIMEZONE,
   });
 
   return formatter.format(toDate(dateInput));

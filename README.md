@@ -122,4 +122,5 @@ pnpm dev:backend
 - Audit log perubahan data di panel admin.
 - Notifikasi otomatis saat status pengajuan berubah.
 - Scheduler sinkronisasi/validasi tanggal kompetisi.
+- Auto-refresh ringan untuk status dan sisa waktu katalog (opsional, interval 1-5 menit, fokus hemat beban).
 - Integrasi upload aset (poster/banner) ke object storage.
