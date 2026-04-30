@@ -117,6 +117,8 @@ export function CompetitionDetailModal({
               <dd className="mt-1 text-xs text-zinc-400">
                 {daysLeft === null
                   ? "Tanggal belum ditentukan"
+                  : daysLeft === 0
+                    ? "Hari terakhir"
                   : daysLeft >= 0
                     ? `Masih ada ${daysLeft} hari`
                     : "Pendaftaran sudah tutup"}

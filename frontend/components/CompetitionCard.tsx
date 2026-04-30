@@ -21,6 +21,10 @@ function getRemainingDaysLabel(daysLeft: number | null): string {
     return "Tanggal belum ditentukan";
   }
 
+  if (daysLeft === 0) {
+    return "Hari terakhir";
+  }
+
   if (daysLeft >= 0) {
     return `${daysLeft} hari lagi`;
   }

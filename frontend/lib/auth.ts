@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -6,6 +6,7 @@ import {
   createSessionValue,
   isAdminSessionValueValid,
   resolveAdminCredentials,
+  resolveAdminEmailFromSession,
   validateAdminCredentialsInput,
 } from "@/lib/authSession";
 
@@ -48,4 +49,12 @@ export async function requireAdminSession(): Promise<void> {
   if (!authenticated) {
     redirect("/admin");
   }
+}
+
+export async function getAdminEmailFromSession(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const credentials = resolveAdminCredentials();
+
+  return resolveAdminEmailFromSession(sessionCookie, credentials);
 }

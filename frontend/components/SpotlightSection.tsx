@@ -97,6 +97,8 @@ export function SpotlightSection({
                 <dd className="text-[1.78rem] font-semibold text-accent-gold/95">
                   {primaryDaysLeft === null
                     ? "Menunggu jadwal"
+                    : primaryDaysLeft === 0
+                      ? "Hari terakhir"
                     : primaryDaysLeft >= 0
                       ? `${primaryDaysLeft} hari`
                       : "Terlambat"}
@@ -166,6 +168,8 @@ export function SpotlightSection({
                       <span className="font-medium">
                         {daysLeft === null
                           ? "Belum ditentukan"
+                          : daysLeft === 0
+                            ? "Hari terakhir"
                           : daysLeft >= 0
                             ? `${daysLeft} hari lagi`
                             : "Sudah lewat"}
