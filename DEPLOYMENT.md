@@ -7,6 +7,8 @@ Panduan ini mengikuti kondisi repo saat ini:
 - backend Node.js di `backend/`
 - backend bisa membaca data dari `Supabase Cloud` atau fallback ke file lokal JSON
 - schema database dikelola lewat `Supabase CLI`
+- autentikasi admin memakai signed session cookie + hash password scrypt
+- backend sudah memiliki rate limiting untuk endpoint submit publik dan write admin
 
 ## 1. Ringkasan Alur
 
@@ -40,6 +42,10 @@ Repo ini sudah menyiapkan file migration schema di:
 
 ```text
 supabase/migrations/20260427120000_create_competitions.sql
+supabase/migrations/20260427131000_make_competition_dates_nullable.sql
+supabase/migrations/20260427210000_create_competition_submissions.sql
+supabase/migrations/20260429181423_create_admin_audit_logs.sql
+supabase/migrations/20260429193000_fix_admin_audit_logs_rls_policies.sql
 ```
 
 ### 2.3 Push migration ke Supabase Cloud
@@ -66,12 +72,16 @@ BACKEND_BASE_URL=http://127.0.0.1:4000
 SUPABASE_URL=https://PROJECT-REF.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=isi-service-role-key
 SUPABASE_COMPETITIONS_TABLE=competitions
+SUPABASE_SUBMISSIONS_TABLE=competition_submissions
 LOCAL_COMPETITIONS_FILE_PATH=backend/.local/competitions.json
+LOCAL_SUBMISSIONS_FILE_PATH=backend/.local/submissions.json
 BACKEND_ADMIN_TOKEN=ganti-dengan-token-random-panjang
+BACKEND_TRUST_PROXY=true
 PORT=3000
 NODE_ENV=production
 ADMIN_EMAIL=admin@compbase.id
-ADMIN_PASSWORD=ganti-dengan-password-yang-kuat
+ADMIN_PASSWORD_HASH=isi-hash-scrypt-password-admin
+ADMIN_SESSION_SECRET=isi-random-string-min-32-karakter
 ```
 
 Catatan:
@@ -79,14 +89,33 @@ Catatan:
 - jika `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` diisi, backend otomatis memakai Supabase
 - jika keduanya kosong, backend otomatis fallback ke file lokal
 - `LOCAL_COMPETITIONS_FILE_PATH` dipakai sebagai sumber migrasi data lama
+- `BACKEND_TRUST_PROXY=true` hanya jika backend berada di balik reverse proxy tepercaya
+- `ADMIN_PASSWORD_HASH` wajib diisi; gunakan `pnpm admin:hash-password` untuk generate
+- `ADMIN_SESSION_SECRET` wajib diisi di production untuk keamanan session cookie admin
+
+### 3.1 Generate hash password + session secret (wajib)
+
+Generate secret acak untuk `ADMIN_SESSION_SECRET`:
+
+```bash
+openssl rand -base64 48
+```
+
+Generate hash password admin untuk `ADMIN_PASSWORD_HASH`:
+
+```bash
+pnpm admin:hash-password "PASSWORD_ADMIN_KAMU"
+```
+
+Copy output hash ke `.env` sebagai nilai `ADMIN_PASSWORD_HASH`.
 
 ## 4. Siapkan VPS
 
 Asumsi:
 
-- OS: Ubuntu 22.04 atau 24.04
-- user deploy: `deploy`
-- direktori app: `/var/www/compbase`
+- OS: Ubuntu 24.04
+- user deploy: `username`
+- direktori app: `/opt/compbase`
 
 Install dependency dasar:
 
@@ -343,6 +372,7 @@ which systemctl
 - `pnpm --filter backend build` sukses
 - `pnpm --filter frontend build` sukses
 - `pnpm dlx supabase@latest db push` sudah dijalankan
+- migration `20260429193000_fix_admin_audit_logs_rls_policies.sql` sudah ikut ter-push
 - `.env` di VPS terisi benar
 - `rsync` tersedia di VPS
 - backend sehat di `/health`
@@ -358,6 +388,14 @@ Periksa:
 - `SUPABASE_URL` terisi
 - `SUPABASE_SERVICE_ROLE_KEY` terisi
 - service backend sudah direstart
+
+### Login admin gagal setelah deploy
+
+Periksa:
+
+- `ADMIN_PASSWORD_HASH` valid (format `scrypt$<salt>$<hash>`)
+- `ADMIN_SESSION_SECRET` terisi string acak panjang
+- waktu server sinkron (NTP aktif) agar TTL session konsisten
 
 ### `db push` gagal
 

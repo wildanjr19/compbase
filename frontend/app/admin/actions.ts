@@ -1,5 +1,6 @@
-"use server";
+﻿"use server";
 
+import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { competitionSchema } from "@/lib/schemas";
 import type { Competition } from "@/lib/types";
@@ -8,6 +9,7 @@ import {
   deleteCompetitionFromBackend,
   updateCompetitionInBackend,
 } from "@/lib/utils/backend";
+import { logAdminAudit } from "@/lib/utils/audit";
 import {
   approveSubmissionInBackend,
   deleteSubmissionFromBackend,
@@ -16,6 +18,7 @@ import {
 import {
   clearAdminSession,
   createAdminSession,
+  getAdminEmailFromSession,
   requireAdminSession,
   validateAdminCredentials,
 } from "@/lib/auth";
@@ -125,6 +128,19 @@ export async function createCompetitionAction(
 
   try {
     const createdCompetition = await createCompetitionInBackend(parsedInput);
+    const adminEmail = await getAdminEmailFromSession();
+
+    if (adminEmail) {
+      await logAdminAudit(
+        adminEmail,
+        "create",
+        "competition",
+        createdCompetition.id,
+        null,
+        createdCompetition,
+      );
+    }
+    revalidateTag("competitions", "default");
 
     return {
       ok: true,
@@ -178,6 +194,19 @@ export async function updateCompetitionAction(
 
   try {
     const updatedCompetition = await updateCompetitionInBackend(normalizedCompetitionId, parsedInput);
+    const adminEmail = await getAdminEmailFromSession();
+
+    if (adminEmail) {
+      await logAdminAudit(
+        adminEmail,
+        "update",
+        "competition",
+        updatedCompetition.id,
+        null,
+        updatedCompetition,
+      );
+    }
+    revalidateTag("competitions", "default");
 
     return {
       ok: true,
@@ -210,6 +239,19 @@ export async function deleteCompetitionAction(
 
   try {
     const deletedId = await deleteCompetitionFromBackend(normalizedCompetitionId);
+    const adminEmail = await getAdminEmailFromSession();
+
+    if (adminEmail) {
+      await logAdminAudit(
+        adminEmail,
+        "delete",
+        "competition",
+        deletedId,
+        null,
+        null,
+      );
+    }
+    revalidateTag("competitions", "default");
 
     return {
       ok: true,
@@ -242,6 +284,19 @@ export async function approveSubmissionAction(
 
   try {
     const competition = await approveSubmissionInBackend(normalizedSubmissionId);
+    const adminEmail = await getAdminEmailFromSession();
+
+    if (adminEmail) {
+      await logAdminAudit(
+        adminEmail,
+        "approve",
+        "submission",
+        normalizedSubmissionId,
+        null,
+        competition,
+      );
+    }
+    revalidateTag("competitions", "default");
 
     return {
       ok: true,
@@ -276,6 +331,18 @@ export async function rejectSubmissionAction(
     const rejectedSubmissionId = await rejectSubmissionInBackend(
       normalizedSubmissionId,
     );
+    const adminEmail = await getAdminEmailFromSession();
+
+    if (adminEmail) {
+      await logAdminAudit(
+        adminEmail,
+        "reject",
+        "submission",
+        rejectedSubmissionId,
+        null,
+        null,
+      );
+    }
 
     return {
       ok: true,
@@ -310,6 +377,18 @@ export async function deleteSubmissionAction(
     const deletedSubmissionId = await deleteSubmissionFromBackend(
       normalizedSubmissionId,
     );
+    const adminEmail = await getAdminEmailFromSession();
+
+    if (adminEmail) {
+      await logAdminAudit(
+        adminEmail,
+        "delete",
+        "submission",
+        deletedSubmissionId,
+        null,
+        null,
+      );
+    }
 
     return {
       ok: true,
@@ -324,3 +403,4 @@ export async function deleteSubmissionAction(
     };
   }
 }
+

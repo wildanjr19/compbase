@@ -11,6 +11,7 @@ import {
   type Competition,
 } from "./competition.ts";
 import { createCompetitionStore } from "./dataStore.ts";
+import { checkRateLimit, getRateLimitKey } from "./rateLimit.ts";
 import {
   competitionSubmissionSchema,
   normalizeSubmissionInput,
@@ -132,8 +133,12 @@ function sendJson(
     | DeleteSubmissionResponse
     | HealthResponse
     | ErrorResponse,
+  headers: Record<string, string> = {},
 ): void {
-  res.writeHead(statusCode, { "Content-Type": "application/json" });
+  res.writeHead(statusCode, {
+    "Content-Type": "application/json",
+    ...headers,
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -429,9 +434,37 @@ async function handleRequest(
     res.end();
     return;
   }
-
   const requestUrl = new URL(req.url ?? "/", "http://localhost");
   const pathname = requestUrl.pathname;
+
+  // Rate limiting
+  const submissionLimitKey = getRateLimitKey(req, "submissions");
+  const adminLimitKey = getRateLimitKey(req, "admin");
+  if (req.method === "POST" && pathname === "/submissions") {
+    const limit = checkRateLimit(submissionLimitKey, 10, 60_000);
+    if (!limit.allowed) {
+      sendJson(
+        res,
+        429,
+        { ok: false, error: "Terlalu banyak permintaan. Coba lagi nanti." },
+        { "Retry-After": String(limit.retryAfter ?? 1) },
+      );
+      return;
+    }
+  }
+
+  if (isWriteMethod(req.method) && !isPublicSubmissionCreate(pathname, req.method)) {
+    const limit = checkRateLimit(adminLimitKey, 100, 60_000);
+    if (!limit.allowed) {
+      sendJson(
+        res,
+        429,
+        { ok: false, error: "Terlalu banyak permintaan. Coba lagi nanti." },
+        { "Retry-After": String(limit.retryAfter ?? 1) },
+      );
+      return;
+    }
+  }
 
   if (
     isWriteMethod(req.method) &&

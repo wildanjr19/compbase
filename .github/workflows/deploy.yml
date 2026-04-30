@@ -96,5 +96,5 @@ jobs:
             sudo systemctl is-active compbase-backend
             sudo systemctl is-active compbase-frontend
 
-            curl -f http://127.0.0.1:4100/health
+            curl -f "http://127.0.0.1:${BACKEND_PORT:-4100}/health"
           EOF

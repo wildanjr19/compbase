@@ -48,10 +48,28 @@
 
 ## Phase 7: Persistensi Data dan Mutasi Admin
 - Status: In Progress
-- Catatan: Validasi Zod sudah ditambahkan dan mutasi panel admin sudah aktif ke backend in-memory. Penyimpanan persisten production masih menjadi pekerjaan lanjutan.
+- Catatan: Validasi Zod sudah ditambahkan, mutasi panel admin aktif ke backend, cache homepage sudah bisa diinvalidasi, audit log admin sudah tersimpan di Supabase, dan hardening auth/rate limiting dasar sudah diterapkan.
 
 ### Checklist Teknis Phase 7
 - [x] Menambahkan dependency validasi yang disetujui untuk alur write.
 - [x] Menyusun schema input kompetisi yang dipakai client dan server.
 - [x] Menyambungkan panel admin ke alur simpan/hapus data nyata.
+- [x] Menambahkan cache server pada fetch kompetisi homepage.
+- [x] Menambahkan invalidasi cache berbasis tag setelah mutasi admin.
+- [x] Menambahkan tabel audit log + helper logging pada server action admin.
+- [x] Menambahkan rate limiting backend untuk submit publik dan write admin.
+- [x] Memperkuat auth admin (hash password scrypt + signed session cookie).
+- [x] Menghapus fallback plaintext password admin (`ADMIN_PASSWORD`).
+- [x] Menambahkan script helper `pnpm admin:hash-password` untuk generate hash scrypt.
 - [ ] Menentukan penyimpanan data production yang persisten.
+
+## Phase 8: Operasional Production & Keamanan
+- Status: In Progress
+- Catatan: Dokumentasi deployment sudah diperbarui untuk env keamanan (`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `BACKEND_TRUST_PROXY`) dan migration policy audit log RLS.
+
+### Checklist Teknis Phase 8
+- [x] Menambahkan migration `admin_audit_logs`.
+- [x] Menambahkan migration perbaikan policy RLS audit log.
+- [x] Memperbarui dokumentasi README + deployment untuk konfigurasi keamanan.
+- [x] Memperbarui dokumentasi untuk menghapus referensi `ADMIN_PASSWORD` plaintext.
+- [ ] Menambahkan observability sederhana (error-rate, rate-limit hit, auth failure) untuk operasi harian.

@@ -1,3 +1,4 @@
+﻿import { unstable_cache } from "next/cache";
 import { CompetitionCatalog } from "@/components/CompetitionCatalog";
 import { FilterBar } from "@/components/FilterBar";
 import { HeroSection } from "@/components/HeroSection";
@@ -46,12 +47,18 @@ function getPaginationPages(currentPage: number, totalPages: number): number[] {
   );
 }
 
+const getCachedCompetitions = unstable_cache(
+  async () => getCompetitionsFromBackend(),
+  ["competitions-list"],
+  { revalidate: 60, tags: ["competitions"] },
+);
+
 export default async function Home({ searchParams }: HomePageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const filters = parseCompetitionFilters(resolvedSearchParams);
   const now = new Date();
   const currentYear = now.getFullYear();
-  const competitionResult = await getCompetitionsFromBackend();
+  const competitionResult = await getCachedCompetitions();
   const allCompetitions = competitionResult.competitions;
 
   const competitionBaseFilters = {
